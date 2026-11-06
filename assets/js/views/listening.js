@@ -532,31 +532,11 @@ window.CET = window.CET || {};
     });
   }
 
-  // 资源链接兜底：window.open 被拦时直接在当前页打开，并给出可见提示
-  function showResHint(text, tone) {
-    var el = document.getElementById("resOpenHint");
-    if (!el) return;
-    el.textContent = text;
-    el.className = "res-open-hint tiny" + (tone ? " " + tone : "");
-  }
-
   function bindResourceLinks(root) {
+    // 资源链接一律走浏览器原生 <a href target="_blank" rel="noopener noreferrer">，
+    // 这里只清理历史遗留的 data-res 属性，绝不 preventDefault / window.open。
     root.querySelectorAll("[data-res]").forEach(function (a) {
-      a.addEventListener("click", function (e) {
-        var href = a.getAttribute("href") || "";
-        if (!/^https?:\/\//i.test(href)) return;
-        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
-        e.preventDefault();
-        var w = null;
-        try { w = window.open(href, "_blank"); } catch (err) { w = null; }
-        if (w) {
-          try { w.opener = null; } catch (err) { /* 忽略 */ }
-          showResHint("已在新标签打开：" + href, "ok");
-          return;
-        }
-        showResHint("浏览器拦截了新标签，已尝试在当前页打开（按浏览器「后退」可返回本站）。", "warn");
-        try { location.href = href; } catch (err) { /* 忽略 */ }
-      });
+      a.removeAttribute("data-res");
     });
   }
 
@@ -757,7 +737,7 @@ window.CET = window.CET || {};
     var resHtml = '<div class="card res-section" id="resFold">' +
       '<div class="row between wrap res-head">' +
         '<div><h3>历年真题原音资源</h3>' +
-          '<p class="tiny dim res-tip">点整张卡片、或「打开链接」都会在新标签直达原平台。若点击后没有反应：请右键选择「在新标签页中打开」，或点「复制地址」后把完整地址粘贴到浏览器地址栏（部分浏览器会限制 file:// 本地页面的跳转）。「当前页打开」会覆盖本页，用浏览器「后退」即可返回。</p>' +
+          '<p class="tiny dim res-tip">点整张卡片、或「打开链接」都会通过浏览器原生链接在新标签直达原平台（不经过任何 JS 拦截）。若浏览器拦截了新标签，可点「复制地址」后把完整地址粘贴到浏览器地址栏。「当前页打开」会覆盖本页，用浏览器「后退」即可返回。</p>' +
         "</div>" +
         '<div class="res-head-actions">' +
           (hub ? '<a class="res-big-open" data-res href="' + UI().esc(hub.url) + '" target="_blank" rel="noopener noreferrer">打开链接 ↗</a>' +
@@ -765,7 +745,7 @@ window.CET = window.CET || {};
           '<span class="tag">' + okCount + " / " + papers.length + " 可用</span>" +
         "</div>" +
       "</div>" +
-      '<p class="res-open-hint tiny" id="resOpenHint">已逐条核验（' + (res.verifiedAt || "2026-11-05") + '）：以上链接均可访问。点卡片没反应时，页面会自动尝试在当前页打开。</p>' +
+      '<p class="res-open-hint tiny" id="resOpenHint">已逐条核验（' + (res.verifiedAt || "2026-11-05") + '）：以上链接均可访问，点击即由浏览器在新标签打开；若被拦截，用「复制地址」粘贴到地址栏。</p>' +
       '<div class="res-list">' + papers.map(function (p) {
         var expired = p.status === "expired";
         return '<div class="res-card">' +
@@ -1012,10 +992,10 @@ window.CET = window.CET || {};
     var hint0, hintTone = "";
     if (linkBlocked && !online && !blobUrl && !builtin) {
       hintTone = "bad";
-      hint0 = "该链接地址不允许站外播放，请下载音频后用「导入本地音频」；当前已回退到语音合成。";
+      hint0 = "该地址不允许站外播放（跨域或 403），请下载音频后点「导入本地音频」；当前已回退到语音合成。";
     } else if (linkBlocked) {
       hintTone = "bad";
-      hint0 = "该链接地址不允许站外播放，已回退到" +
+      hint0 = "该地址不允许站外播放（跨域或 403），请下载音频后点「导入本地音频」；已回退到" +
         (online && !onlineBlocked ? "在线真题原音。" : blobUrl && !blobBlocked ? "本地导入的音频。"
           : builtin ? "内置原音。" : "语音合成。");
     } else if (onlineBlocked) {
@@ -1703,11 +1683,15 @@ window.CET = window.CET || {};
       updatePlayBtn();
     });
     el.addEventListener("error", function () {
-      if (res.mode === "link") linkFailed[res.key] = true;
-      else if (res.mode === "online") linkFailed["online:" + res.key] = true;
-      else if (res.mode === "blob") blobFailed[res.key] = true;
-      else if (res.mode === "builtin") linkFailed["builtin:" + res.key] = true;
-      UI().toast("音频加载失败，已尝试切换其他来源", "error");
+      if (res.mode === "link") {
+        linkFailed[res.key] = true;
+        UI().toast("该地址不允许站外播放（跨域或 403），请下载音频后点「导入本地音频」", "error");
+      } else {
+        if (res.mode === "online") linkFailed["online:" + res.key] = true;
+        else if (res.mode === "blob") blobFailed[res.key] = true;
+        else if (res.mode === "builtin") linkFailed["builtin:" + res.key] = true;
+        UI().toast("音频加载失败，已尝试切换其他来源", "error");
+      }
       stopAll();
       CET.app.rerender();
     });
