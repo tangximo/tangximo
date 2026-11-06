@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="CET 学习岛：四六级高频词汇、口语录音、听力精听、学习小组与积分系统" />
+  <title>CET 学习岛 · 四六级备考</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="assets/css/main.css?v=20261106h" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard" data-nav="dashboard" id="brandLink">
+        <span class="brand-mark">CET</span>
+        <span class="brand-copy">
+          <strong>学习岛</strong>
+          <small>四级 / 六级 备考舱</small>
+        </span>
+      </a>
+      <nav class="nav" id="mainNav" aria-label="主导航"></nav>
+      <div class="side-foot">
+        <div class="side-row">
+          <div class="side-stat"><span>今日积分</span><strong id="sideToday">0</strong></div>
+          <div class="side-stat"><span>连续打卡</span><strong id="sideStreak">0 天</strong></div>
+        </div>
+        <div class="side-level">
+          <div class="side-level-top"><span id="sideLevelName">初学新芽</span><span id="sideLevelPct">0%</span></div>
+          <div class="bar"><i id="sideLevelBar" style="width:0%"></i></div>
+        </div>
+        <p class="side-note">数据保存在本机浏览器<br />无需联网 · 可离线使用</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-title">
+          <p class="eyebrow" id="todayLabel"></p>
+          <h1 id="viewTitle">学习总览</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="themeBtn" type="button" title="切换主题" aria-label="切换主题">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4.2" />
+              <path d="M12 2.5v2.2M12 19.3v2.2M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.4 19.6l1.6-1.6M18 6l1.6-1.6" />
+            </svg>
+          </button>
+          <button class="points-pill" id="pointsPill" type="button" title="查看积分明细">
+            <span class="points-dot"></span>
+            <span id="pointsValue">0</span>
+            <small>积分</small>
+          </button>
+          <button class="avatar" id="userBtn" type="button" aria-label="修改昵称">同学</button>
+        </div>
+      </header>
+      <div id="viewRoot" class="view-root"></div>
+    </main>
+  </div>
+
+  <div id="toastHost" class="toast-host" aria-live="polite"></div>
+
+  <script src="assets/js/data/words-4a.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4b.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4c.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4d.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4e.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4f.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6a.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6b.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6c.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6d.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6e.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6f.js?v=20261105f"></script>
+  <script src="assets/js/data/words.js?v=20261105f"></script>
+  <script src="assets/js/data/listening.js?v=20261106e"></script>
+  <script src="assets/js/data/listening-cet4.js?v=20261106e"></script>
+  <script src="assets/js/data/listening-cet6.js?v=20261106e"></script>
+  <script src="assets/js/data/listening-resources.js?v=20261106e"></script>
+  <script src="assets/js/data/listening-audio-online.js?v=20261106e"></script>
+  <script src="assets/js/data/listening-2025-12.js?v=20261106a"></script>
+  <script src="assets/js/data/listening-2025-12-cet4-s1.js?v=20261106e"></script>
+  <script src="assets/js/data/speaking.js?v=20261105f"></script>
+  <script src="assets/js/core/store.js?v=20261105f"></script>
+  <script src="assets/js/core/audio-store.js?v=20261105f"></script>
+  <script src="assets/js/core/ui.js?v=20261105f"></script>
+  <script src="assets/js/views/dashboard.js?v=20261105f"></script>
+  <script src="assets/js/views/vocab.js?v=20261105f"></script>
+  <script src="assets/js/views/speaking.js?v=20261105f"></script>
+  <script src="assets/js/views/listening.js?v=20261106h"></script>
+  <script src="assets/js/views/groups.js?v=20261105f"></script>
+  <script src="assets/js/views/points.js?v=20261105f"></script>
+  <script src="assets/js/app.js?v=20261105f"></script>
+</body>
+</html>
