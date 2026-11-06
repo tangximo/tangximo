@@ -817,11 +817,12 @@ window.CET = window.CET || {};
       "</div>" +
       '<div class="grid grid-auto" style="margin-top:16px">' + (emptyHtml || cards) + "</div>" +
       '<details class="fold" id="toolsFold"' + (batch.last || pendingAudio.length ? " open" : "") + ">" +
-        "<summary>资源链接与批量导入（可选，不影响上面的练习）</summary>" +
+        "<summary>批量导入与本地音频库（可选，不影响上面的练习）</summary>" +
         '<div class="fold-body tools-body">' +
-          '<p class="tiny dim" style="margin:0">批量导入会按文件名自动匹配到有原文的 10 套；其他套题请在套题页粘贴直链或导入。资源链接为外部平台，点击会在新标签打开。</p>' +
-          batchHtml + resHtml + builtinLibHtml() +
+          '<p class="tiny dim" style="margin:0">批量导入会按文件名自动匹配到有原文的 10 套；其他套题请在套题页粘贴直链或导入。下面「历年真题原音资源」为外部平台链接，点击由浏览器在新标签打开。</p>' +
+          batchHtml + builtinLibHtml() +
         "</div></details>" +
+        resHtml +
     "</div>";
 
     root.querySelectorAll("[data-year]").forEach(function (b) {
