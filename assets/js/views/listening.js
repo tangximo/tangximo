@@ -598,7 +598,9 @@ window.CET = window.CET || {};
       var it = lib.matched[sid];
       if (!it) return;
       var uid = it.level + ":" + it.exam;
-      idx[uid] = { exam: uid, item: it, setId: sid, set: setOf(sid), key: sid };
+      var ms = setOf(sid);
+      idx[uid] = { exam: uid, item: it, setId: sid, set: ms, key: sid,
+        local: !!(ms && ms.audio && isLocalAudio(ms.audio)) };
     });
     (lib.unmatched || []).forEach(function (it) {
       if (!it) return;
@@ -966,13 +968,14 @@ window.CET = window.CET || {};
     var audioSrc = "";
     var srcLabel = "语音合成";
     if (link && !linkBlocked) { mode = "link"; srcLabel = "原音链接"; audioSrc = link; }
-    else if (online && !onlineBlocked) { mode = "online"; srcLabel = "在线真题原音"; audioSrc = online.url; }
-    else if (blobUrl && !blobBlocked) { mode = "blob"; srcLabel = "本地导入"; audioSrc = blobUrl; }
+    // 本地真题原音优先于在线引用：assets/audio/<年份>/ 可离线播放
     else if (builtin && !builtinBlocked) {
       mode = "builtin";
       srcLabel = isLocalAudio(builtin) ? "真题原音（本地）" : "内置原音";
       audioSrc = builtin;
     }
+    else if (online && !onlineBlocked) { mode = "online"; srcLabel = "在线真题原音"; audioSrc = online.url; }
+    else if (blobUrl && !blobBlocked) { mode = "blob"; srcLabel = "本地导入"; audioSrc = blobUrl; }
     sourceMode = mode;
     var isOrig = mode !== "tts";
 
