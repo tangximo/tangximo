@@ -1,8 +1,8 @@
 /**
  * 听力数据：四级（L1-L5）
  * 说明：文本按历年真题题型与场景整理编写，不是官方逐字稿。
- * 官方音频未内置，audio 字段一律为 null。
- * 替换方法：把对应音频放入 assets/audio/ 目录，再把 audio 字段填成音频路径，例如 assets/audio/L1.mp3。
+ * 真题原音按年份内置：assets/audio/<年份>/cet4-<yyyy>-<mm>-set<n>.mp3，
+ * 对应套题的 audio 字段已指向该文件，可离线播放；精听版支持逐句循环与听写判分。
  */
 window.CET = window.CET || {};
 CET.data = CET.data || {};
@@ -16,7 +16,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "9月",
     title: "改签火车票",
     intro: "女士因会议延时错过原班火车，在窗口改签并挑选座位。",
-    audio: null,
+    audio: "assets/audio/2020/cet4-2020-09-set1.mp3",
     lines: [
       { sp: "W", en: "Excuse me, I would like to change my ticket to the 3:30 train to Shanghai.", cn: "不好意思，我想把票改签到三点半去上海的那趟车。" },
       { sp: "M", en: "Let me see your ticket, please. This one is for the 1:15 train, and it is already past two.", cn: "请把票给我看一下。您这张是一点十五的车，现在已经过两点了。" },
@@ -47,7 +47,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "6月",
     title: "周末志愿者招募",
     intro: "两人讨论社区图书馆周末阅读志愿项目的培训与任务安排。",
-    audio: null,
+    audio: "assets/audio/2021/cet4-2021-06-set1.mp3",
     lines: [
       { sp: "W", en: "Hi, Daniel. I saw a notice about the weekend reading program at the community library. Are they still looking for volunteers?", cn: "嗨，丹尼尔。我看到社区图书馆周末阅读活动的通知。他们还在招志愿者吗？" },
       { sp: "M", en: "They are, but the training session is on Wednesday evening. Can you make it?", cn: "还在招，不过培训是周三晚上。你能来吗？" },
@@ -78,7 +78,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "6月",
     title: "免费的公开课",
     intro: "短文介绍面向成人的免费公开课，以及它的优势与坚持难点。",
-    audio: null,
+    audio: "assets/audio/2022/cet4-2022-06-set1.mp3",
     lines: [
       { sp: "W", en: "Ten years ago, most people thought that learning ended when they left school.", cn: "十年前，多数人认为离开学校学习就结束了。" },
       { sp: "W", en: "Today, however, millions of adults sign up for free online courses every year.", cn: "然而今天，每年有数百万成年人报名免费的在线课程。" },
@@ -109,7 +109,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "6月",
     title: "共享单车新规",
     intro: "新闻报道某城市出台共享单车停放新规，以及市民的不同反应。",
-    audio: null,
+    audio: "assets/audio/2023/cet4-2023-06-set1.mp3",
     lines: [
       { sp: "N", en: "The city government announced on Monday that shared bicycles must be parked in marked areas starting next month.", cn: "市政府周一宣布，从下个月起共享单车必须停放在划线区域内。" },
       { sp: "N", en: "Riders who leave a bike outside these areas will receive a warning for the first time and a fine of fifty yuan after that.", cn: "把车停到区域外的骑行者第一次会收到警告，之后再犯罚款五十元。" },

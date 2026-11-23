@@ -1,5 +1,5 @@
 /* 听力：年份 → 级别 → 套次 → 题型；每套提供「完整版」与「精听版」
-   播放来源优先级：用户直链 > 在线真题原音 > 本地导入(IndexedDB) > 内置音频 > 语音合成
+   播放来源优先级：用户直链 > 本地真题原音(assets/audio/<年份>/) > 在线真题原音 > 本地导入(IndexedDB) > 语音合成
    数据现实：在线原音是整卷一段，没有逐题时间戳；逐句精听只能基于有原文的 10 套。 */
 window.CET = window.CET || {};
 
@@ -1506,13 +1506,14 @@ window.CET = window.CET || {};
     var builtinBlocked = !!linkFailed["builtin:" + key];
     var mode = "none", audioSrc = "", srcLabel = "暂无音频";
     if (link && !linkBlocked) { mode = "link"; srcLabel = "原音直链"; audioSrc = link; }
-    else if (online && !onlineBlocked) { mode = "online"; srcLabel = "在线真题原音"; audioSrc = online.url; }
-    else if (blobUrl && !blobBlocked) { mode = "blob"; srcLabel = "本地导入"; audioSrc = blobUrl; }
+    // 本地真题原音优先于在线引用：按年份存放在 assets/audio/<年份>/，可离线播放
     else if (builtin && !builtinBlocked) {
       mode = "builtin";
       srcLabel = isLocalAudio(builtin) ? "真题原音（本地）" : "内置原音";
       audioSrc = builtin;
     }
+    else if (online && !onlineBlocked) { mode = "online"; srcLabel = "在线真题原音"; audioSrc = online.url; }
+    else if (blobUrl && !blobBlocked) { mode = "blob"; srcLabel = "本地导入"; audioSrc = blobUrl; }
     else if (set && set.lines && set.lines.length) { mode = "tts"; srcLabel = "语音合成"; }
     return {
       key: key, set: set, item: entry.item, link: link, blobUrl: blobUrl, meta: meta,

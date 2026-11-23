@@ -1,8 +1,8 @@
 /**
  * 听力数据：六级（L6-L12）
  * 说明：文本按历年真题题型与场景整理编写，不是官方逐字稿。
- * 官方音频未内置，audio 字段一律为 null。
- * 替换方法：把对应音频放入 assets/audio/ 目录，再把 audio 字段填成音频路径，例如 assets/audio/L6.mp3。
+ * 真题原音按年份内置：assets/audio/<年份>/cet6-<yyyy>-<mm>-set<n>.mp3，
+ * 对应套题的 audio 字段已指向该文件，可离线播放；精听版支持逐句循环与听写判分。
  */
 window.CET = window.CET || {};
 CET.data = CET.data || {};
@@ -16,7 +16,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "9月",
     title: "睡眠如何巩固记忆",
     intro: "讲座阐述睡眠如何巩固白天所学，以及睡眠不足带来的影响。",
-    audio: null,
+    audio: "assets/audio/2020/cet6-2020-09-set1.mp3",
     lines: [
       { sp: "M", en: "Good evening. Tonight I want to explain how sleep protects what you learn during the day.", cn: "晚上好。今晚我想讲睡眠如何保护你白天学到的东西。" },
       { sp: "M", en: "When you study a new list of words, the information is first stored in a fragile form in the brain.", cn: "当你学习一组新单词时，信息最初以不稳定的形式存储在大脑中。" },
@@ -47,7 +47,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "6月",
     title: "海洋塑料的来源",
     intro: "短文说明海洋塑料污染的来源、微塑料的危害与治理思路。",
-    audio: null,
+    audio: "assets/audio/2021/cet6-2021-06-set1.mp3",
     lines: [
       { sp: "W", en: "Every year, about eleven million tons of plastic waste enter the world's oceans.", cn: "每年约有1100万吨塑料垃圾进入世界海洋。" },
       { sp: "W", en: "Most of it does not come from ships. It flows down rivers from cities and farms far inland.", cn: "其中大部分并非来自船只，而是从内陆城市和农场顺河流而下。" },
@@ -78,7 +78,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "6月",
     title: "远程办公的新常态",
     intro: "新闻报道远程办公成为常态后企业的调整，以及潜在的隐忧。",
-    audio: null,
+    audio: "assets/audio/2022/cet6-2022-06-set1.mp3",
     lines: [
       { sp: "N", en: "A new survey of three thousand companies shows that remote work has become a permanent part of office life.", cn: "一项针对三千家企业的新调查显示，远程办公已成为办公生活中永久的一部分。" },
       { sp: "N", en: "Nearly sixty percent of the firms now allow employees to work from home at least two days a week.", cn: "现在近六成企业允许员工每周至少两天在家办公。" },
@@ -109,7 +109,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "6月",
     title: "人工智能会取代哪些岗位",
     intro: "讲座讨论人工智能对岗位任务的影响，并以历史经验给出启示。",
-    audio: null,
+    audio: "assets/audio/2023/cet6-2023-06-set1.mp3",
     lines: [
       { sp: "M", en: "Today I will discuss a question that worries many of you: will artificial intelligence take our jobs?", cn: "今天我要讨论一个让很多人担忧的问题：人工智能会抢走我们的工作吗？" },
       { sp: "M", en: "The honest answer is that it will take some tasks, not whole jobs, at least in the near future.", cn: "坦率的答案是：至少近期内，它取代的是一些任务，而不是整个岗位。" },
@@ -140,7 +140,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "6月",
     title: "学术会议的行程",
     intro: "助理与教授核对学术会议的日程冲突，并安排机票、住宿与材料。",
-    audio: null,
+    audio: "assets/audio/2024/cet6-2024-06-set1.mp3",
     lines: [
       { sp: "W", en: "Professor Hale, have you received the final program for the conference in Lisbon?", cn: "黑尔教授，您收到里斯本会议的最终日程了吗？" },
       { sp: "M", en: "I have, but there is a clash. My talk and the session on language testing are both on Thursday morning.", cn: "收到了，但有冲突。我的报告和语言测试专场都在周四上午。" },
@@ -171,7 +171,7 @@ CET.data.listening = (CET.data.listening || []).concat([
     session: "6月",
     title: "城市绿地与居民健康",
     intro: "短文介绍城市绿地与居民健康的关系，以及绿地分配不均的问题。",
-    audio: null,
+    audio: "assets/audio/2025/cet6-2025-06-set1.mp3",
     lines: [
       { sp: "W", en: "More than half of the people in the world now live in cities, and that share is still rising.", cn: "全球已有超过一半人口居住在城市，而且这一比例仍在上升。" },
       { sp: "W", en: "A growing body of research links green spaces to better physical and mental health.", cn: "越来越多的研究把绿地和更好的身心健康联系起来。" },
