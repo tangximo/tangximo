@@ -118,7 +118,7 @@ window.CET = window.CET || {};
   var SPEAK_SM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9.5v5h3.5L12 19V5l-4.5 4.5H4z"/><path d="M16 8.5a5 5 0 0 1 0 7"/></svg>';
 
   function setOf(id) {
-    var all = (CET.data.listening || []).concat(CET.data.listening2025 || []);
+    var all = (CET.data.listening || []).concat(CET.data.listening2025 || []).concat(CET.data.listeningExtra || []);
     return all.filter(function (s) { return s.id === id; })[0];
   }
 
@@ -621,6 +621,18 @@ window.CET = window.CET || {};
         setId: set.id, set: set, key: "local:" + uid, local: true
       };
     });
+    // 补全逐句原文的套题（listening-extra），覆盖对应在线条目
+    (CET.data.listeningExtra || []).forEach(function (set) {
+      var uid = set.level + ":" + set.exam;
+      idx[uid] = {
+        exam: uid,
+        item: {
+          level: set.level, exam: set.exam, year: set.year, month: set.month, set: set.set,
+          title: set.title, url: set.audio
+        },
+        setId: set.id, set: set, key: "extra:" + uid, local: true
+      };
+    });
     return idx;
   }
 
@@ -755,18 +767,18 @@ window.CET = window.CET || {};
         '<div class="row between wrap" style="gap:10px;margin-bottom:10px">' +
           '<div><h3 style="font-size:15px">听力真题 · 按年份</h3>' +
           '<p class="tiny dim">先选年份，再选级别与套次；每套提供「完整版」与「精听版」两个入口。</p></div>' +
-          '<span class="tag teal">在线原音 ' + ((CET.data.listeningAudioOnline || {}).total || 0) + " 套 · 本地原音 " + (CET.data.listening2025 || []).length + " 套</span>" +
+          '<span class="tag teal">在线原音 ' + ((CET.data.listeningAudioOnline || {}).total || 0) + " 套 · 本地原音 " + ((CET.data.listening2025 || []).length + (CET.data.listeningExtra || []).length) + " 套</span>" +
         "</div>" +
         '<div class="filter-chips" id="yearChips">' + yearChips + "</div>" +
         levelChips + typeChips +
         '<p class="tiny dim grid-sum">' + UI().esc(sumText) + "</p>" +
-        '<p class="tiny dim" style="margin-top:6px;line-height:1.6">2025年12月 四级/六级第1、2套已接入<b>本地真题原音</b>（离线可播），题库未提供听力原文，精听为「跟听 + 自评」。其余套题：50 套在线原音中有 10 套带整理文本，可逐句精听 + 听写判分。</p>' +
+        '<p class="tiny dim" style="margin-top:6px;line-height:1.6">全部套题均已接入<b>本地真题原音</b>（离线可播），并配有逐句原文与译文，可直接进入精听版逐句循环、倍速与听写。原文来自第三方整理，个别句界可能有误。</p>' +
       "</div>" +
       '<div class="grid grid-auto" style="margin-top:16px">' + (emptyHtml || cards) + "</div>" +
       '<details class="fold" id="toolsFold"' + (batch.last || pendingAudio.length ? " open" : "") + ">" +
         "<summary>批量导入与本地音频库（可选，不影响上面的练习）</summary>" +
         '<div class="fold-body tools-body">' +
-          '<p class="tiny dim" style="margin:0">批量导入会按文件名自动匹配到有原文的 10 套；其他套题请在套题页粘贴直链或导入。</p>' +
+          '<p class="tiny dim" style="margin:0">批量导入会按文件名自动匹配到有原文的套题；其他套题请在套题页粘贴直链或导入。</p>' +
           batchHtml + builtinLibHtml() +
         "</div></details>" +
     "</div>";
