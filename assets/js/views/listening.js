@@ -731,62 +731,6 @@ window.CET = window.CET || {};
       "</div>";
     }
 
-    var res = CET.data.listeningResources || { papers: [], channels: [] };
-    var papers = (res.papers || []).filter(function (p) {
-      return ui.level === "ALL" || p.level === ui.level;
-    });
-    var hub = (res.channels || [])[ui.level === "CET6" ? 1 : 0] || (res.channels || [])[0] || null;
-    var okCount = papers.filter(function (p) { return p.status !== "expired"; }).length;
-    var resHtml = '<div class="card res-section" id="resFold">' +
-      '<div class="row between wrap res-head">' +
-        '<div><h3>历年真题原音资源</h3>' +
-          '<p class="tiny dim res-tip">点整张卡片、或「打开链接」都会通过浏览器原生链接在新标签直达原平台（不经过任何 JS 拦截）。若浏览器拦截了新标签，可点「复制地址」后把完整地址粘贴到浏览器地址栏。「当前页打开」会覆盖本页，用浏览器「后退」即可返回。</p>' +
-        "</div>" +
-        '<div class="res-head-actions">' +
-          (hub ? '<a class="res-big-open" data-res href="' + UI().esc(hub.url) + '" target="_blank" rel="noopener noreferrer">打开链接 ↗</a>' +
-            '<button class="res-copy" type="button" data-copy="' + UI().esc(hub.url) + '">复制入口地址</button>' : "") +
-          '<span class="tag">' + okCount + " / " + papers.length + " 可用</span>" +
-        "</div>" +
-      "</div>" +
-      '<p class="res-open-hint tiny" id="resOpenHint">已逐条核验（' + (res.verifiedAt || "2026-11-05") + '）：以上链接均可访问，点击即由浏览器在新标签打开；若被拦截，用「复制地址」粘贴到地址栏。</p>' +
-      '<div class="res-list">' + papers.map(function (p) {
-        var expired = p.status === "expired";
-        return '<div class="res-card">' +
-          '<a class="res-item" data-res href="' + UI().esc(p.url) + '" target="_blank" rel="noopener noreferrer" aria-label="打开 ' + UI().esc(p.year + " " + p.session + " " + p.set) + '">' +
-            '<div class="res-hit">' +
-              '<span class="res-year">' + p.year + " " + UI().esc(p.session) + "</span>" +
-              '<span class="res-name">' + UI().esc(p.set) + " · " + UI().esc(p.type) + "</span>" +
-              '<span class="tag ' + (p.level === "CET4" ? "accent" : "teal") + '">' +
-                (p.level === "CET4" ? "四级" : "六级") + "</span>" +
-              '<span class="res-status ' + (expired ? "bad" : "ok") + '">' + (expired ? "已失效" : "可用") + "</span>" +
-              '<span class="res-open">打开 →</span>' +
-            "</div>" +
-            '<div class="res-foot"><span class="res-url">' + UI().esc(p.url) + "</span></div>" +
-          "</a>" +
-          (p.note ? '<p class="tiny dim res-note">' + UI().esc(p.note) + "</p>" : "") +
-          '<div class="res-actions">' +
-            '<a class="res-open-btn" data-res href="' + UI().esc(p.url) + '" target="_blank" rel="noopener noreferrer">打开链接</a>' +
-            '<a class="res-open-btn res-self" href="' + UI().esc(p.url) + '" target="_self" rel="noopener" title="将在当前页打开，用浏览器「后退」返回本站">当前页打开</a>' +
-            '<button class="res-copy" type="button" data-copy="' + UI().esc(p.url) + '">复制地址</button>' +
-          "</div>" +
-        "</div>";
-      }).join("") + "</div>" +
-      '<div class="res-channels">' + (res.channels || []).map(function (c) {
-        return '<div class="res-channel">' +
-          '<a class="res-channel-hit" data-res href="' + UI().esc(c.url) + '" target="_blank" rel="noopener noreferrer">' +
-            "<b>" + UI().esc(c.name) + "</b><span>" + UI().esc(c.desc) + "</span>" +
-            '<span class="res-url">' + UI().esc(c.url) + "</span>" +
-          "</a>" +
-          '<div class="res-actions">' +
-            '<a class="res-open-btn" data-res href="' + UI().esc(c.url) + '" target="_blank" rel="noopener noreferrer">打开链接</a>' +
-            '<a class="res-open-btn res-self" href="' + UI().esc(c.url) + '" target="_self" rel="noopener">当前页打开</a>' +
-            '<button class="res-copy" type="button" data-copy="' + UI().esc(c.url) + '">复制地址</button>' +
-          "</div>" +
-        "</div>";
-      }).join("") + "</div>" +
-      '<p class="tiny dim" style="margin-top:10px">真题与录音版权归原平台所有，本站只提供直达链接，不转存官方音频。</p>' +
-    "</div>";
-
     var batchHtml = '<div class="card batch-card" id="batchCard">' +
       '<div class="row between wrap" style="gap:10px">' +
         '<div><h3 style="font-size:15px">批量导入音频</h3>' +
@@ -822,10 +766,9 @@ window.CET = window.CET || {};
       '<details class="fold" id="toolsFold"' + (batch.last || pendingAudio.length ? " open" : "") + ">" +
         "<summary>批量导入与本地音频库（可选，不影响上面的练习）</summary>" +
         '<div class="fold-body tools-body">' +
-          '<p class="tiny dim" style="margin:0">批量导入会按文件名自动匹配到有原文的 10 套；其他套题请在套题页粘贴直链或导入。下面「历年真题原音资源」为外部平台链接，点击由浏览器在新标签打开。</p>' +
+          '<p class="tiny dim" style="margin:0">批量导入会按文件名自动匹配到有原文的 10 套；其他套题请在套题页粘贴直链或导入。</p>' +
           batchHtml + builtinLibHtml() +
         "</div></details>" +
-        resHtml +
     "</div>";
 
     root.querySelectorAll("[data-year]").forEach(function (b) {
