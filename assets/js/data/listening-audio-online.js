@@ -1,12 +1,13 @@
-/* 在线真题原音索引（不转存任何音频文件）
-   音频托管在 Couldyyy9/cet-website 的 GitHub Pages 真题库，本站只做在线引用。
-   MIT 许可只覆盖该仓库源代码；真题与音频版权归各自权利人，仅供个人学习。
-   URL 规则：https://couldyyy9.github.io/cet-website/library/{cet4|cet6}/{examId}/listening.mp3 */
+/* 在线真题原音索引 + 本地镜像路径
+   音频来源：Couldyyy9/cet-website 的 GitHub Pages 真题库；本仓库已按年份镜像到
+   assets/audio/<年份>/，播放时优先使用本地文件（见 views/listening.js）。
+   MIT 许可只覆盖该仓库源代码；真题与音频版权归各自权利人，仅供个人学习。 */
 window.CET = window.CET || {};
 CET.data = CET.data || {};
 
 (function () {
   var BASE = "https://couldyyy9.github.io/cet-website/library/";
+  var LOCAL = "assets/audio/";
   function item(level, exam) {
     var p = exam.split("_");
     return {
@@ -15,7 +16,9 @@ CET.data = CET.data || {};
       year: parseInt(p[0], 10),
       month: parseInt(p[1], 10),
       set: parseInt(p[2], 10),
-      url: BASE + (level === "CET4" ? "cet4" : "cet6") + "/" + exam + "/listening.mp3"
+      url: BASE + (level === "CET4" ? "cet4" : "cet6") + "/" + exam + "/listening.mp3",
+      // 本地镜像：assets/audio/<年份>/<cet4|cet6>-<yyyy>-<mm>-set<n>.mp3
+      local: LOCAL + p[0] + "/" + (level === "CET4" ? "cet4" : "cet6") + "-" + p[0] + "-" + p[1] + "-set" + p[2] + ".mp3"
     };
   }
 

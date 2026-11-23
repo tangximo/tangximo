@@ -606,7 +606,8 @@ window.CET = window.CET || {};
       if (!it) return;
       var uid = it.level + ":" + it.exam;
       if (idx[uid]) return;
-      idx[uid] = { exam: uid, item: it, setId: null, set: null, key: "exam:" + uid };
+      idx[uid] = { exam: uid, item: it, setId: null, set: null, key: "exam:" + uid,
+        local: !!(it.local && isLocalAudio(it.local)) };
     });
     // 2025.12 本地原音样板优先覆盖同名在线条目
     (CET.data.listening2025 || []).forEach(function (set) {
@@ -1502,7 +1503,7 @@ window.CET = window.CET || {};
     var blobUrl = audioURLs[key] || "";
     var meta = audioMeta[key] || null;
     var online = set ? onlineFor(set) : entry.item;
-    var builtin = set ? builtinFor(set) : "";
+    var builtin = set ? builtinFor(set) : (entry.item && entry.item.local ? entry.item.local : "");
     var linkBlocked = !!linkFailed[key];
     var blobBlocked = !!blobFailed[key];
     var onlineBlocked = !!linkFailed["online:" + key];

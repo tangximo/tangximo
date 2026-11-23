@@ -227,21 +227,21 @@ CET.data = CET.data || {};
   // clip/start/end/dur 来自 ffmpeg silencedetect（noise=-35dB:d=1.2）+ 25 个 15 秒答题停顿分组
   set.passages = [
     { label: "新闻 1", kind: "短篇新闻", from: 0,  to: 5,  qs: [1, 2],
-      clip: "assets/audio/cet4-2025-12-s1/p1-news1.mp3", start: 40.22, end: 98.47, dur: 58.28 },
+      clip: "assets/audio/2025/cet4-2025-12-s1/p1-news1.mp3", start: 40.22, end: 98.47, dur: 58.28 },
     { label: "新闻 2", kind: "短篇新闻", from: 6,  to: 14, qs: [3, 4],
-      clip: "assets/audio/cet4-2025-12-s1/p2-news2.mp3", start: 142.75, end: 203.38, dur: 60.66 },
+      clip: "assets/audio/2025/cet4-2025-12-s1/p2-news2.mp3", start: 142.75, end: 203.38, dur: 60.66 },
     { label: "新闻 3", kind: "短篇新闻", from: 15, to: 23, qs: [5, 6, 7],
-      clip: "assets/audio/cet4-2025-12-s1/p3-news3.mp3", start: 251.04, end: 326.10, dur: 75.08 },
+      clip: "assets/audio/2025/cet4-2025-12-s1/p3-news3.mp3", start: 251.04, end: 326.10, dur: 75.08 },
     { label: "对话 1", kind: "长对话",   from: 24, to: 39, qs: [8, 9, 10, 11],
-      clip: "assets/audio/cet4-2025-12-s1/p4-conv1.mp3", start: 394.63, end: 513.26, dur: 118.67 },
+      clip: "assets/audio/2025/cet4-2025-12-s1/p4-conv1.mp3", start: 394.63, end: 513.26, dur: 118.67 },
     { label: "对话 2", kind: "长对话",   from: 40, to: 56, qs: [12, 13, 14, 15],
-      clip: "assets/audio/cet4-2025-12-s1/p5-conv2.mp3", start: 599.81, end: 698.14, dur: 98.35 },
+      clip: "assets/audio/2025/cet4-2025-12-s1/p5-conv2.mp3", start: 599.81, end: 698.14, dur: 98.35 },
     { label: "篇章 1", kind: "听力篇章", from: 57, to: 67, qs: [16, 17, 18],
-      clip: "assets/audio/cet4-2025-12-s1/p6-passage1.mp3", start: 786.02, end: 915.88, dur: 129.91 },
+      clip: "assets/audio/2025/cet4-2025-12-s1/p6-passage1.mp3", start: 786.02, end: 915.88, dur: 129.91 },
     { label: "篇章 2", kind: "听力篇章", from: 68, to: 79, qs: [19, 20, 21],
-      clip: "assets/audio/cet4-2025-12-s1/p7-passage2.mp3", start: 986.34, end: 1099.44, dur: 113.11 },
+      clip: "assets/audio/2025/cet4-2025-12-s1/p7-passage2.mp3", start: 986.34, end: 1099.44, dur: 113.11 },
     { label: "篇章 3", kind: "听力篇章", from: 80, to: 92, qs: [22, 23, 24, 25],
-      clip: "assets/audio/cet4-2025-12-s1/p8-passage3.mp3", start: 1166.03, end: 1272.88, dur: 106.87 }
+      clip: "assets/audio/2025/cet4-2025-12-s1/p8-passage3.mp3", start: 1166.03, end: 1272.88, dur: 106.87 }
   ];
   set.clipNote = "切点按静音检测，可能含少量相邻内容；句内定位按句长估算，可能不准。";
   set.sourceDuration = 1377.5;
