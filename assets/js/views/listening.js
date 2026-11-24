@@ -22,7 +22,7 @@ window.CET = window.CET || {};
   // 每句独立的倍速 / 循环 / 遍数：按套 + 句 id 存在 localStorage（刷新、切篇后仍保留）
   var LINE_CTL_KEY = "cet.listening.lineCtl.v2";
   // 用户手动校准的句界：setId -> 句 id -> {s, e}（秒）。刷新后保留，优先级高于实测/估算。
-  var BOUND_KEY = "cet.listening.bounds.v1";
+  var BOUND_KEY = "cet.listening.bounds.v2";
   var customBounds = {};  // setId -> { lineIndex: {s, e} }
   function loadBounds() {
     try {
