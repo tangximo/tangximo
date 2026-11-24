@@ -1011,33 +1011,6 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
   color: var(--dim);
 }
 
-.cloze-item {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 14px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--line);
-  background: var(--panel);
-  flex-wrap: wrap;
-}
-.cloze-item .cloze-text { flex: 1; min-width: 200px; font-size: 13.5px; line-height: 1.7; }
-.cloze-item input {
-  width: 130px;
-  height: 34px;
-  padding: 0 10px;
-  border-radius: 9px;
-  border: 1px solid var(--line-strong);
-  background: var(--panel-2);
-  font-size: 13px;
-  outline: none;
-}
-.cloze-item input:focus { border-color: var(--accent); }
-.cloze-item.ok { border-color: rgba(70, 217, 138, 0.45); background: var(--ok-soft); }
-.cloze-item.bad { border-color: rgba(255, 122, 138, 0.4); }
-.cloze-feedback { font-size: 11.5px; color: var(--success); font-weight: 700; }
-.cloze-feedback.bad { color: var(--danger); }
-
 .audio-note {
   display: flex;
   gap: 10px;
@@ -2246,37 +2219,10 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
   .tp-audio { flex: 1 1 100%; height: 36px; }
 }
 
-.cloze-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-.cloze-item { align-items: flex-start; }
-.cloze-item .cloze-text input { width: 120px; max-width: 100%; }
-.cloze-feedback { flex: none; margin-top: 6px; }
-
-.self-dictation {
-  width: 100%;
-  max-width: 100%;
-  min-height: 120px;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--line-strong);
-  background: var(--panel-2);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.65;
-  resize: vertical;
-  outline: none;
-  box-sizing: border-box;
-}
-.self-dictation:focus { border-color: var(--accent); }
-
 @media (max-width: 640px) {
   .exam-actions .btn { flex: 1 1 100%; }
   .exam-card { padding: 14px 12px; }
   .transcript { max-height: none; }
-  .cloze-item { flex-direction: column; gap: 6px; }
-  .cloze-item .cloze-text { min-width: 0; }
-  .cloze-item .cloze-text input { width: 100%; }
-  .cloze-feedback { margin-top: 0; }
 }
 
 /* ===== 句界校准面板（音频 ↔ 原文 对应） ===== */
