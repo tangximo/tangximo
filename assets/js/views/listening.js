@@ -1270,6 +1270,19 @@ window.CET = window.CET || {};
         updatePlayBtn();
       });
       origEl.addEventListener("ended", function () {
+        // 最后一句循环时，句尾可能正好是音频末尾导致 timeupdate 来不及跳回，这里兜底
+        if (loopLine >= 0) {
+          markInternalSeek();
+          var lt = lineTiming(loopLine);
+          if (isFinite(lt.start)) {
+            try { origEl.currentTime = lt.start; } catch (e) { /* 忽略 */ }
+            player.playing = true;
+            updatePlayBtn();
+            var pr3 = origEl.play();
+            if (pr3 && pr3.catch) { pr3.catch(function () { /* 忽略 */ }); }
+            return;
+          }
+        }
         player.playing = false;
         updatePlayBtn();
         setHint("原音播放完毕", "ok");
@@ -2659,6 +2672,25 @@ window.CET = window.CET || {};
       a.addEventListener("ended", function () {
         syncClipBtn(pi);
         var piNow = parseInt(pi, 10);
+        // 最后一句的句尾恰好等于音频总时长时，timeupdate 可能来不及触发单句循环，
+        // 音频就已 ended。这里补上：若当前句仍在单句循环且遍数未满，跳回句首继续。
+        var hit = player.idx >= 0 ? passageOf(player.idx) : null;
+        if (hit && hit.pi === piNow && loopLine === player.idx && loopTotal > 1) {
+          if (loopDone < loopTotal - 1) {
+            var t = clipTiming(hit.p, player.idx);
+            loopDone += 1;
+            markInternalSeek();
+            try { a.currentTime = t.start; } catch (e) { /* 忽略 */ }
+            setHint("第 " + (player.idx + 1) + " 句循环中：第 " + (loopDone + 1) + " / " + loopTotal + " 遍", "");
+            var pr2 = a.play();
+            if (pr2 && pr2.catch) { pr2.catch(function () { /* 忽略 */ }); }
+          } else {
+            setHint("第 " + (player.idx + 1) + " 句已循环 " + loopTotal + " 遍，自动停止", "ok");
+            loopLine = -1;
+            loopDone = 0;
+          }
+          return;
+        }
         if (passLoop !== piNow) { return; }
         markInternalSeek();
         try { a.currentTime = 0; } catch (e) { /* 忽略 */ }
