@@ -2523,50 +2523,50 @@ window.CET = window.CET || {};
       var a = clipAudio(pi);
       if (b && a) { b.textContent = a.paused ? "播放本篇" : "暂停"; }
     }
-    // 定位后再生效播放：音频未加载完就设 currentTime 时，浏览器常先从头播一小段
-    // 再跳到目标位置，听感上就是「这一句只剩后半截」。这里等元数据/seeked 完成再 play。
+    // 定位并播放。要点：play() 必须留在点击的同一调用栈里同步调用。
+    // 之前为了「先定位再播」把 play() 推迟到 loadedmetadata/seeked 之后（最长 1.5s），
+    // 部分浏览器把这种延迟的 play() 当作非用户触发而直接拒绝（NotAllowedError），
+    // 页面就会提示「本篇音频播放失败」。现在改为：能定位就先定位，然后立刻同步 play()，
+    // 再在 playing/seeked/loadedmetadata 时复核一次位置，避免从头播一小段。
     function seekThenPlay(a, startAt, rate) {
-      var started = false;
-      function doPlay() {
-        if (started) { return; }
-        started = true;
-        try { a.playbackRate = rate; } catch (e) { /* 忽略 */ }
-        var pr = a.play();
-        if (pr && pr.catch) {
-          pr.catch(function (err) {
-            var code = err && err.name ? err.name : "Error";
-            setHint("播放失败：" + code + "：" + (err && err.message ? err.message : "未知原因"), "warn");
-            UI().toast("本篇音频播放失败，可用完整版整卷原音", "error");
-          });
+      var want = Math.max(0, startAt || 0);
+      function align() {
+        try {
+          var d = a.duration;
+          var t = (isFinite(d) && d > 0) ? Math.min(want, Math.max(0, d - 0.15)) : want;
+          if (Math.abs((a.currentTime || 0) - t) > 0.25) {
+            markInternalSeek();
+            a.currentTime = t;
+          }
+        } catch (e) { /* 忽略 */ }
+      }
+      function onFail(err) {
+        var code = err && err.name ? err.name : "Error";
+        if (code === "NotAllowedError") {
+          setHint("浏览器拦下了这次播放，请再点一次「播放本篇」", "warn");
+          UI().toast("浏览器未允许自动播放，再点一次即可", "warn");
+          return;
         }
+        setHint("播放失败：" + code + "：" + (err && err.message ? err.message : "未知原因"), "warn");
+        UI().toast("本篇音频播放失败，可用完整版整卷原音", "error");
       }
-      function doSeek() {
-        markInternalSeek();
-        try { a.currentTime = startAt; } catch (e) { /* 忽略 */ }
-        var now = 0;
-        try { now = a.currentTime || 0; } catch (e) { now = 0; }
-        if (Math.abs(now - startAt) < 0.08) { doPlay(); return; }
-        var onSeeked = function () {
-          a.removeEventListener("seeked", onSeeked);
-          doPlay();
-        };
-        a.addEventListener("seeked", onSeeked);
-        setTimeout(function () {
-          try { a.removeEventListener("seeked", onSeeked); } catch (e) { /* 忽略 */ }
-          doPlay();
-        }, 700);
+      try { a.playbackRate = rate; } catch (e) { /* 忽略 */ }
+      if (a.readyState >= 1) { align(); } else {
+        // 元数据还没到：先按目标位置预置（有的浏览器此时不允许，忽略即可）
+        try { if (want > 0) { markInternalSeek(); a.currentTime = want; } } catch (e) { /* 忽略 */ }
       }
-      if (a.readyState >= 1) { doSeek(); return; }
-      var onMeta = function () {
-        a.removeEventListener("loadedmetadata", onMeta);
-        doSeek();
+      var pr;
+      try { pr = a.play(); } catch (e) { onFail(e); return; }
+      var once = function () {
+        a.removeEventListener("playing", once);
+        a.removeEventListener("seeked", once);
+        a.removeEventListener("loadedmetadata", once);
+        align();
       };
-      a.addEventListener("loadedmetadata", onMeta);
-      try { a.load(); } catch (e) { /* 忽略 */ }
-      setTimeout(function () {
-        try { a.removeEventListener("loadedmetadata", onMeta); } catch (e) { /* 忽略 */ }
-        if (!started) { doSeek(); }
-      }, 1500);
+      a.addEventListener("playing", once);
+      a.addEventListener("seeked", once);
+      a.addEventListener("loadedmetadata", once);
+      if (pr && pr.then) { pr.then(null, onFail); }
     }
     function playClipAt(pi, i) {
       var p = passages[pi];
