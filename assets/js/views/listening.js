@@ -18,8 +18,6 @@ window.CET = window.CET || {};
   var storeLoaded = false;
   var pendingAudio = [];  // 批量导入后未匹配到套题的音频（也保存在 IndexedDB 里）
   var batch = { busy: false, last: null }; // 批量导入进度与最近一次结果
-  var selfDraft = {};     // exam -> 无原文套题的自我听写草稿（仅本页会话）
-  var selfState = {};     // exam -> good | again（自我听写自评）
   var stopAt = null;      // 原音模式下「播到本句结束就停」的时间点（秒）
   // 每句独立的倍速 / 循环 / 遍数：按套 + 句 id 存在 localStorage（刷新、切篇后仍保留）
   var LINE_CTL_KEY = "cet.listening.lineCtl.v2";
@@ -618,7 +616,7 @@ window.CET = window.CET || {};
 
   var YEARS = [];
   for (var y0 = 2020; y0 <= 2026; y0++) YEARS.push(y0);
-  var TYPE_LIST = ["短对话", "长对话", "短文", "新闻", "讲座", "听写"];
+  var TYPE_LIST = ["短对话", "长对话", "短文", "新闻", "讲座"];
   var examIndex = null;
 
   // 把「在线原音 50 条」与「有原文的 10 套」合并成统一的套次索引
@@ -691,7 +689,6 @@ window.CET = window.CET || {};
   function matchesType(entry, type) {
     if (type === "ALL") return true;
     if (!entry.set) return false;
-    if (type === "听写") return !!(entry.set.cloze && entry.set.cloze.length);
     return entry.set.type === type;
   }
 
@@ -705,7 +702,7 @@ window.CET = window.CET || {};
     var meta = set
       ? "<span>整卷原音 1 段</span><span>原文 " + (set.lines || []).length + " 句</span><span>" +
         (set.questions || []).length + " 题</span>" +
-        (entry.local ? "<span>本地 mp3</span>" : "<span>听写 " + (set.cloze || []).length + " 空</span>")
+        (entry.local ? "<span>本地 mp3</span>" : "")
       : "<span>整卷原音 1 段</span><span>题目暂无</span><span>原文暂无</span>";
     return '<div class="card flat exam-card" data-exam="' + entry.exam + '">' +
       '<div class="exam-top">' + tags + "</div>" +
@@ -804,7 +801,7 @@ window.CET = window.CET || {};
         '<div class="filter-chips" id="yearChips">' + yearChips + "</div>" +
         levelChips + typeChips +
         '<p class="tiny dim grid-sum">' + UI().esc(sumText) + "</p>" +
-        '<p class="tiny dim" style="margin-top:6px;line-height:1.6">全部套题均已接入<b>本地真题原音</b>（离线可播），并配有逐句原文与译文，可直接进入精听版逐句循环、倍速与听写。原文来自第三方整理，个别句界可能有误。</p>' +
+        '<p class="tiny dim" style="margin-top:6px;line-height:1.6">全部套题均已接入<b>本地真题原音</b>（离线可播），并配有逐句原文与译文，可直接进入精听版逐句循环与倍速。原文来自第三方整理，个别句界可能有误。</p>' +
       "</div>" +
       '<div class="grid grid-auto" style="margin-top:16px">' + (emptyHtml || cards) + "</div>" +
       '<details class="fold" id="toolsFold"' + (batch.last || pendingAudio.length ? " open" : "") + ">" +
@@ -1095,7 +1092,7 @@ window.CET = window.CET || {};
         "</details>"
       : '<div class="card" style="margin-top:16px">' +
           '<h3 style="font-size:15px">听力原文</h3>' +
-          '<p class="tiny dim" style="margin-top:4px">题库（Couldyyy9/cet-website）未提供本套听力原文与中文译文；本地解析 PDF 为扫描件，本版未内置逐字稿。可在「精听版」跟听并自评。</p>' +
+          '<p class="tiny dim" style="margin-top:4px">题库（Couldyyy9/cet-website）未提供本套听力原文与中文译文；本地解析 PDF 为扫描件，本版未内置逐字稿。可在「精听版」跟听原音。</p>' +
         "</div>";
 
     root.innerHTML = '<div class="view-enter">' +
@@ -1554,11 +1551,6 @@ window.CET = window.CET || {};
     CET.app.rerender();
   }
 
-  function normAns(s) {
-    return String(s || "").toLowerCase().trim()
-      .replace(/[.,!?;:'"()]/g, "").replace(/\s+/g, " ");
-  }
-
   // 可选音频工具：直链 / 本地导入 / 在线地址（三处页面共用）
   function audioToolsHtml(res) {
     return '<details class="fold" id="audioTools">' +
@@ -1756,7 +1748,7 @@ window.CET = window.CET || {};
     bindAudioTools(root, res);
   }
 
-  // 精听版（无原文）：跟听 + 自我听写，不自动判分
+  // 精听版（无原文）：整卷原音跟听
   function renderIntensiveNoText(root, entry) {
     var res = resolveSources(entry);
     var audioEl = res.audioSrc
@@ -1764,10 +1756,8 @@ window.CET = window.CET || {};
         '" style="width:100%;margin-top:10px"></audio>'
       : "";
     var hint = res.audioSrc
-      ? "整卷原音是一段录音，无法逐句切分；请从头到尾跟听，并在下方自评。"
+      ? "整卷原音是一段录音，无法逐句切分；请从头到尾跟听。"
       : "当前没有可用音频：可在下方粘贴直链或导入本地音频后再跟听。";
-    var state = selfState[entry.exam] || "";
-    var draftSelf = selfDraft[entry.exam] || "";
 
     var title = entry.set ? entry.set.title : examLabel(entry.item);
     var sourceLine = entry.set
@@ -1788,24 +1778,13 @@ window.CET = window.CET || {};
         "</div>" +
         '<p class="set-source">' + UI().esc(sourceLine) + "</p>" +
         '<div class="audio-note"><span>i</span><div>' +
-          "<b>题库未提供听力原文/译文，无法自动判分</b>。本页只提供「跟听 + 自我听写 + 自评」，不产生判分与积分；题目作答请回完整版。" +
+          "<b>题库未提供听力原文/译文</b>。本页只提供整卷原音跟听；题目作答请回完整版。" +
         "</div></div>" +
         '<div class="player" style="margin-top:12px">' +
           '<div class="row between wrap" style="gap:8px;margin-bottom:10px">' + audioBadgeHtml(res) +
             '<span class="tiny dim listen-src-detail">' + UI().esc(srcDetailText(res)) + "</span></div>" +
           audioEl +
           '<p class="play-hint" id="playHint">' + UI().esc(hint) + "</p>" +
-        "</div>" +
-      "</div>" +
-      '<div class="card" style="margin-top:16px">' +
-        '<h3 style="font-size:15px">跟听 + 自我听写</h3>' +
-        '<p class="tiny dim" style="margin-top:4px">整卷原音无法定位到某一句，请从头跟听，在下面写下你听到的关键词或句子。</p>' +
-        '<textarea class="self-dictation" id="selfDictation" placeholder="在这里写下你听到的内容…（不自动判分）">' +
-          UI().esc(draftSelf) + "</textarea>" +
-        '<div class="row wrap" style="gap:8px;margin-top:10px">' +
-          '<button class="chip' + (state === "good" ? " active" : "") + '" type="button" data-self="good">自评：基本跟听清楚</button>' +
-          '<button class="chip' + (state === "again" ? " active" : "") + '" type="button" data-self="again">自评：还需要再听</button>' +
-          '<span class="tiny dim" id="selfHint">自评只记录在本页，不判分、不计分</span>' +
         "</div>" +
       "</div>" +
       audioToolsHtml(res) +
@@ -1822,24 +1801,9 @@ window.CET = window.CET || {};
     });
     bindOrigAudio(root, res);
     bindAudioTools(root, res);
-
-    var ta = root.querySelector("#selfDictation");
-    ta.addEventListener("input", function () { selfDraft[entry.exam] = ta.value; });
-    root.querySelectorAll("[data-self]").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var v = b.getAttribute("data-self");
-        selfState[entry.exam] = v;
-        root.querySelectorAll("[data-self]").forEach(function (x) {
-          x.classList.toggle("active", x.getAttribute("data-self") === v);
-        });
-        var hintEl = root.querySelector("#selfHint");
-        if (hintEl) hintEl.textContent = v === "good" ? "已记录自评：基本跟听清楚（不判分）" : "已记录自评：还需要再听（不判分）";
-        UI().toast("已记录自评（不判分、不计分）", "success");
-      });
-    });
   }
 
-  // 精听版（有原文）：逐句 + 循环 / 上一句下一句 / 语速 / 原文开关 / 听写判分
+  // 精听版（有原文）：逐句 + 循环 / 上一句下一句 / 语速 / 原文开关
   function renderIntensive(root, entry) {
     var set = entry.set;
     var res = resolveSources(entry);
@@ -2021,19 +1985,6 @@ window.CET = window.CET || {};
       "</section>";
     }).join("");
 
-    var cloze = set.cloze || [];
-    var clozeBody = cloze.map(function (c, ci) {
-      var parts = String(c.text || "").split("______");
-      return '<div class="cloze-item" data-cloze-row="' + ci + '">' +
-        '<div class="cloze-text">' + UI().esc(parts[0] || "") +
-          '<input type="text" data-cloze-input="' + ci + '" autocomplete="off" spellcheck="false" aria-label="听写第 ' + (ci + 1) + ' 空" />' +
-          UI().esc(parts.length > 1 ? parts.slice(1).join("______") : "") +
-          '<span class="tiny dim" style="display:block;margin-top:4px">提示：' + UI().esc(c.hint || "无") + "</span>" +
-        "</div>" +
-        '<span class="cloze-feedback" data-cloze-fb="' + ci + '"></span>' +
-      "</div>";
-    }).join("");
-
     root.innerHTML = '<div class="view-enter">' +
       '<div class="row" style="margin-bottom:12px;gap:10px;flex-wrap:wrap">' +
         '<button class="btn sm ghost" id="backSets" type="button">← 返回年份列表</button>' +
@@ -2090,18 +2041,6 @@ window.CET = window.CET || {};
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
       "</div>" +
-      (cloze.length
-        ? '<div class="card" style="margin-top:16px">' +
-            '<div class="row between wrap" style="gap:8px;margin-bottom:4px">' +
-              '<h3 style="font-size:15px">听写填空判分</h3>' +
-              '<span class="tiny dim">每题 1 分 · 不区分大小写</span></div>' +
-            '<div class="cloze-list">' + clozeBody + "</div>" +
-            '<div class="quiz-actions">' +
-              '<button class="btn primary" id="submitCloze" type="button">提交听写</button>' +
-              '<span class="tiny dim" id="clozeScore">填好后点提交，会标出对错并给出正确写法</span>' +
-            "</div>" +
-          "</div>"
-        : "") +
       audioToolsHtml(res) +
     "</div>";
 
@@ -2755,29 +2694,6 @@ window.CET = window.CET || {};
         playFromNode(b);
       });
     });
-
-    var submitCloze = root.querySelector("#submitCloze");
-    if (submitCloze) {
-      submitCloze.addEventListener("click", function () {
-        var totalC = cloze.length, right = 0;
-        cloze.forEach(function (c, ci) {
-          var input = root.querySelector('[data-cloze-input="' + ci + '"]');
-          var row = root.querySelector('[data-cloze-row="' + ci + '"]');
-          var fb = root.querySelector('[data-cloze-fb="' + ci + '"]');
-          var val = input && input.value ? input.value.trim() : "";
-          var ok = !!val && (c.answers || []).some(function (a) { return normAns(a) === normAns(val); });
-          if (ok) right += 1;
-          if (row) { row.classList.toggle("ok", ok); row.classList.toggle("bad", !ok); }
-          if (fb) {
-            fb.textContent = ok ? "✓ 正确" : (val ? "✗ 正确写法：" + (c.answers || [])[0] : "未填写 · 正确写法：" + (c.answers || [])[0]);
-            fb.className = "cloze-feedback" + (ok ? "" : " bad");
-          }
-        });
-        var score = root.querySelector("#clozeScore");
-        if (score) score.textContent = "本次得分 " + right + " / " + totalC;
-        UI().toast("听写判分 " + right + " / " + totalC, right === totalC ? "success" : "warn");
-      });
-    }
 
     syncLoopUi();
     if (player.idx >= 0) {
