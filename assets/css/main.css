@@ -2279,4 +2279,56 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
   .cloze-feedback { margin-top: 0; }
 }
 
+/* ===== 句界校准面板（音频 ↔ 原文 对应） ===== */
+.line-calib {
+  padding: 4px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.18s;
+  white-space: nowrap;
+}
+.line-calib:hover { color: var(--text); border-color: var(--line-strong); }
+.line-calib.on { color: var(--accent); border-color: rgba(124, 155, 255, 0.5); background: var(--grad-soft); }
+
+.calib-panel {
+  margin: 8px 10px 10px;
+  padding: 12px 14px;
+  border: 1px dashed rgba(124, 155, 255, 0.45);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.calib-panel[hidden] { display: none; }
+.calib-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.calib-row:first-child { margin-top: 0; }
+.calib-title { font-size: 12.5px; font-weight: 700; color: var(--text); }
+.calib-src { font-size: 11.5px; color: var(--muted); }
+.calib-row label { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.calib-row input[type="number"] {
+  width: 92px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.calib-row input[type="number"]:focus { border-color: var(--accent); outline: none; }
+.chip.xs { padding: 4px 9px; font-size: 11.5px; }
+.chip.sm { padding: 5px 11px; font-size: 12px; }
+.chip.primary { color: var(--accent); border-color: rgba(124, 155, 255, 0.4); }
+.calib-actions { gap: 8px; margin-top: 10px; }
+.calib-tip { margin: 10px 0 0; font-size: 11px; line-height: 1.6; color: var(--dim); }
+
 
