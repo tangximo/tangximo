@@ -2575,6 +2575,16 @@ window.CET = window.CET || {};
         player.idx = -1;
         loopLine = -1;
         stopAt = null;
+        // 本篇音频开头可能带「News report two」之类的报幕，整篇播放从第一句句界起，
+        // 避免听感上「第一句对不上」；已播过的位置不打断。
+        var pp = passages[pi];
+        if (pp && (!a.currentTime || a.currentTime < 0.05)) {
+          var t0 = clipTiming(pp, pp.from);
+          if (t0 && isFinite(t0.start) && t0.start > 0.05) {
+            markInternalSeek();
+            try { a.currentTime = t0.start; } catch (e) { /* 忽略 */ }
+          }
+        }
         setHint("正在播放本篇音频", "");
         var pr = a.play();
         if (pr && pr.catch) {
@@ -2632,7 +2642,9 @@ window.CET = window.CET || {};
         }
         if (passLoop !== piNow) { return; }
         markInternalSeek();
-        try { a.currentTime = 0; } catch (e) { /* 忽略 */ }
+        // 跳过片头报幕，回到本篇第一句句界
+        var tLoop = (passages[piNow] && clipTiming(passages[piNow], passages[piNow].from)) || { start: 0 };
+        try { a.currentTime = Math.max(0, tLoop.start || 0); } catch (e) { /* 忽略 */ }
         player.idx = -1;
         loopLine = -1;
         setHint("本篇循环：已从头重新播放", "");
