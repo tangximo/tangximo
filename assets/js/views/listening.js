@@ -1960,7 +1960,7 @@ window.CET = window.CET || {};
       var playerRow = p.clip
         ? '<div class="tp-player">' +
             '<button class="btn sm" type="button" data-tp-play="' + pi + '">播放本篇</button>' +
-            '<audio class="tp-audio" data-tp-audio="' + pi + '" controls preload="none" playsinline src="' + UI().esc(p.clip) + '"></audio>' +
+            '<audio class="tp-audio" data-tp-audio="' + pi + '" controls preload="metadata" playsinline src="' + UI().esc(p.clip) + '"></audio>' +
             '<span class="tiny dim tp-dur">本篇 ' + fmtDur(p.dur || 0) + "</span>" +
             '<button class="chip' + (passLoop === pi ? " active" : "") + '" type="button" data-tp-loop="' + pi + '">本篇循环</button>' +
           "</div>"
@@ -2523,6 +2523,51 @@ window.CET = window.CET || {};
       var a = clipAudio(pi);
       if (b && a) { b.textContent = a.paused ? "播放本篇" : "暂停"; }
     }
+    // 定位后再生效播放：音频未加载完就设 currentTime 时，浏览器常先从头播一小段
+    // 再跳到目标位置，听感上就是「这一句只剩后半截」。这里等元数据/seeked 完成再 play。
+    function seekThenPlay(a, startAt, rate) {
+      var started = false;
+      function doPlay() {
+        if (started) { return; }
+        started = true;
+        try { a.playbackRate = rate; } catch (e) { /* 忽略 */ }
+        var pr = a.play();
+        if (pr && pr.catch) {
+          pr.catch(function (err) {
+            var code = err && err.name ? err.name : "Error";
+            setHint("播放失败：" + code + "：" + (err && err.message ? err.message : "未知原因"), "warn");
+            UI().toast("本篇音频播放失败，可用完整版整卷原音", "error");
+          });
+        }
+      }
+      function doSeek() {
+        markInternalSeek();
+        try { a.currentTime = startAt; } catch (e) { /* 忽略 */ }
+        var now = 0;
+        try { now = a.currentTime || 0; } catch (e) { now = 0; }
+        if (Math.abs(now - startAt) < 0.08) { doPlay(); return; }
+        var onSeeked = function () {
+          a.removeEventListener("seeked", onSeeked);
+          doPlay();
+        };
+        a.addEventListener("seeked", onSeeked);
+        setTimeout(function () {
+          try { a.removeEventListener("seeked", onSeeked); } catch (e) { /* 忽略 */ }
+          doPlay();
+        }, 700);
+      }
+      if (a.readyState >= 1) { doSeek(); return; }
+      var onMeta = function () {
+        a.removeEventListener("loadedmetadata", onMeta);
+        doSeek();
+      };
+      a.addEventListener("loadedmetadata", onMeta);
+      try { a.load(); } catch (e) { /* 忽略 */ }
+      setTimeout(function () {
+        try { a.removeEventListener("loadedmetadata", onMeta); } catch (e) { /* 忽略 */ }
+        if (!started) { doSeek(); }
+      }, 1500);
+    }
     function playClipAt(pi, i) {
       var p = passages[pi];
       var a = clipAudio(pi);
@@ -2540,28 +2585,15 @@ window.CET = window.CET || {};
         loopLine = -1;
         loopTotal = 1;
       }
-      markInternalSeek();
-      try {
-        var max = (isFinite(a.duration) && a.duration > 0) ? a.duration : (p.dur || 0);
-        a.currentTime = Math.min(Math.max(0, t.start), Math.max(0, max - 0.2));
-      } catch (e) {
-        setHint("本篇内定位失败：" + (e && e.message ? e.message : "未知原因"), "warn");
-      }
-      try { a.playbackRate = lineRate(i); } catch (e) { /* 忽略 */ }
+      var max = (isFinite(a.duration) && a.duration > 0) ? a.duration : (p.dur || 0);
+      var startAt = Math.min(Math.max(0, t.start), Math.max(0, max - 0.2));
       player.idx = i;
       highlightLine(i);
       syncLoopUi();
       setHint("正在播放第 " + (i + 1) + " 句" + (t.custom ? "（已校准）" : "") + " · " + lineRate(i).toFixed(2) + "× · " +
         t.start.toFixed(2) + "–" + t.end.toFixed(2) + "s" +
         (lineLoops[i] ? " · 循环 " + loopTotal + " 遍" : ""), "");
-      var pr = a.play();
-      if (pr && pr.catch) {
-        pr.catch(function (err) {
-          var code = err && err.name ? err.name : "Error";
-          setHint("播放失败：" + code + "：" + (err && err.message ? err.message : "未知原因"), "warn");
-          UI().toast("本篇音频播放失败，可用完整版整卷原音", "error");
-        });
-      }
+      seekThenPlay(a, startAt, lineRate(i));
     }
     root.querySelectorAll("[data-tp-play]").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -2578,22 +2610,16 @@ window.CET = window.CET || {};
         // 本篇音频开头可能带「News report two」之类的报幕，整篇播放从第一句句界起，
         // 避免听感上「第一句对不上」；已播过的位置不打断。
         var pp = passages[pi];
-        if (pp && (!a.currentTime || a.currentTime < 0.05)) {
+        var fromAt = 0;
+        if (pp) {
           var t0 = clipTiming(pp, pp.from);
-          if (t0 && isFinite(t0.start) && t0.start > 0.05) {
-            markInternalSeek();
-            try { a.currentTime = t0.start; } catch (e) { /* 忽略 */ }
-          }
+          if (t0 && isFinite(t0.start) && t0.start > 0.05) { fromAt = t0.start; }
         }
+        var cur = 0;
+        try { cur = a.currentTime || 0; } catch (e) { cur = 0; }
+        if (cur >= 0.05) { fromAt = cur; }
         setHint("正在播放本篇音频", "");
-        var pr = a.play();
-        if (pr && pr.catch) {
-          pr.catch(function (err) {
-            var code = err && err.name ? err.name : "Error";
-            setHint("播放失败：" + code + "：" + (err && err.message ? err.message : "未知原因"), "warn");
-            UI().toast("本篇音频播放失败，可用完整版整卷原音", "error");
-          });
-        }
+        seekThenPlay(a, fromAt, 1);
       });
     });
     root.querySelectorAll(".tp-audio").forEach(function (a) {
@@ -2641,15 +2667,12 @@ window.CET = window.CET || {};
           return;
         }
         if (passLoop !== piNow) { return; }
-        markInternalSeek();
         // 跳过片头报幕，回到本篇第一句句界
         var tLoop = (passages[piNow] && clipTiming(passages[piNow], passages[piNow].from)) || { start: 0 };
-        try { a.currentTime = Math.max(0, tLoop.start || 0); } catch (e) { /* 忽略 */ }
         player.idx = -1;
         loopLine = -1;
         setHint("本篇循环：已从头重新播放", "");
-        var pr = a.play();
-        if (pr && pr.catch) { pr.catch(function () { /* 忽略 */ }); }
+        seekThenPlay(a, Math.max(0, tLoop.start || 0), 1);
       });
       a.addEventListener("timeupdate", function () {
         if (a.paused) { return; }
