@@ -2101,9 +2101,18 @@ window.CET = window.CET || {};
           fmtTime(a.currentTime) + " / " + fmtTime(a.duration);
       }
     }
-    var internalSeekAt = 0; // 程序内定位的时间戳（seeking 事件是异步派发的，用时间窗判定）
-    function markInternalSeek() { internalSeekAt = Date.now(); }
-    function isInternalSeek() { return Date.now() - internalSeekAt < 500; }
+    // 程序内定位的 seeking 事件是异步派发的：慢网络下可能晚于任何固定时间窗（曾用 500ms 判定，
+    // 导致首播时被误判为用户拖动、单句循环被取消）。改为按次数消费，15s 过期兜底防泄漏。
+    var internalSeeks = 0;
+    var internalSeekMark = 0;
+    function markInternalSeek() { internalSeeks += 1; internalSeekMark = Date.now(); }
+    function isInternalSeek() {
+      if (internalSeeks > 0 && Date.now() - internalSeekMark < 15000) {
+        internalSeeks -= 1;
+        return true;
+      }
+      return false;
+    }
     function playOrigAt(i) {
       var a = root.querySelector("#origAudio");
       if (!a) { setHint("播放器还没准备好，请刷新页面后重试", "warn"); return; }
@@ -2188,7 +2197,7 @@ window.CET = window.CET || {};
           if (loopLine >= 0) {
             var lt = lineTiming(loopLine);
             if (isFinite(lt.end) && lt.end > lt.start && au.currentTime >= lt.end) {
-              internalSeekAt = Date.now();
+              markInternalSeek();
               try { au.currentTime = lt.start; } catch (e) { /* 忽略 */ }
               player.idx = loopLine;
               return;
