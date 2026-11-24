@@ -119,7 +119,12 @@ window.CET = window.CET || {};
 
   function setOf(id) {
     var all = (CET.data.listening || []).concat(CET.data.listening2025 || []).concat(CET.data.listeningExtra || []);
-    return all.filter(function (s) { return s.id === id; })[0];
+    var s = all.filter(function (x) { return x.id === id; })[0];
+    if (s && !s.lineBounds) {
+      var m = CET.data.listeningBounds || {};
+      if (m[s.id]) { s.lineBounds = m[s.id]; }
+    }
+    return s;
   }
 
   function levelTag(level) {
@@ -2050,10 +2055,14 @@ window.CET = window.CET || {};
     bindOrigAudio(root, res);
     bindAudioTools(root, res);
 
-    // 原音模式：按句子长度估算每句在整卷里的位置（统一标注「可能不准」，不假装精确）
+    // 句界：优先用 ASR 对齐得到的实测时间（set.lineBounds），没有才按句长估算
     function lineTiming(i) {
       var a = root.querySelector("#origAudio");
       var dur = a && isFinite(a.duration) && a.duration > 0 ? a.duration : 0;
+      var lb = set.lineBounds && set.lineBounds[i];
+      if (lb && isFinite(lb[0]) && isFinite(lb[1]) && lb[1] > lb[0]) {
+        return { start: lb[0], end: lb[1], exact: true };
+      }
       var ws = [], total = 0;
       (set.lines || []).forEach(function (l) {
         var w = Math.max(1, String(l.en || "").length);
@@ -2062,8 +2071,13 @@ window.CET = window.CET || {};
       });
       var acc = 0;
       for (var k = 0; k < i; k++) { acc += ws[k]; }
-      if (!dur || !total || !ws[i]) { return { start: NaN, end: NaN }; }
-      return { start: (acc / total) * dur, end: ((acc + ws[i]) / total) * dur };
+      if (!dur || !total || !ws[i]) { return { start: NaN, end: NaN, exact: false }; }
+      return { start: (acc / total) * dur, end: ((acc + ws[i]) / total) * dur, exact: false };
+    }
+    function seekHint(i, t) {
+      return t && t.exact
+        ? "正在播放第 " + (i + 1) + " 句（实测句界）"
+        : "正在播放第 " + (i + 1) + " 句附近（按句长估算，可能不准）";
     }
     function activeClip() {
       var found = null;
@@ -2107,7 +2121,7 @@ window.CET = window.CET || {};
       player.idx = i;
       highlightLine(i);
       stopAt = t.end;
-      setHint("正在播放第 " + (i + 1) + " 句附近（按句长估算，可能不准）", "");
+      setHint(seekHint(i, t), "");
       var p = a.play();
       if (p && p.catch) {
         p.catch(function (err) {
@@ -2119,7 +2133,7 @@ window.CET = window.CET || {};
           UI().toast("原音播放失败，可用上方音频条手动播放", "error");
         });
       } else {
-        setHint("正在播放第 " + (i + 1) + " 句附近（按句长估算，可能不准）", "");
+        setHint(seekHint(i, t), "");
       }
     }
 
@@ -2183,12 +2197,16 @@ window.CET = window.CET || {};
           if (stopAt != null && au.currentTime >= stopAt) {
             stopAt = null;
             au.pause();
-            setHint("本句播完，可点「下一句」继续（按句长估算，可能不准）", "");
+            var exactDone = !!(set.lineBounds && set.lineBounds.length);
+            setHint(exactDone ? "本句播完，可点「下一句」继续" : "本句播完，可点「下一句」继续（按句长估算，可能不准）", "");
           }
         });
         au.addEventListener("play", function () {
-          // 整卷原音没有逐句时间戳：播整卷时取消单句循环，避免用估算句界乱跳
-          if (loopLine >= 0) { loopLine = -1; syncLoopUi(); }
+          // 整卷原音的单句循环只在句界为「整卷绝对时间」时可靠；
+          // 分篇 clip 套题的句界是 clip 相对时间（如 2025-12 第1套），在整卷上会跳错，因此取消
+          var absBounds = !!(set.lineBounds && set.lineBounds.length) &&
+            !(set.passages || []).some(function (p) { return !!p.clip; });
+          if (loopLine >= 0 && (!absBounds || loopLine !== player.idx)) { loopLine = -1; syncLoopUi(); }
           if (passLoop >= 0) { passLoop = -1; syncLoopUi(); }
         });
         au.addEventListener("seeking", function () {
