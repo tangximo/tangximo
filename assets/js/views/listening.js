@@ -23,6 +23,33 @@ window.CET = window.CET || {};
   var stopAt = null;      // 原音模式下「播到本句结束就停」的时间点（秒）
   // 每句独立的倍速 / 循环 / 遍数：按套 + 句 id 存在 localStorage（刷新、切篇后仍保留）
   var LINE_CTL_KEY = "cet.listening.lineCtl.v2";
+  // 用户手动校准的句界：setId -> 句 id -> {s, e}（秒）。刷新后保留，优先级高于实测/估算。
+  var BOUND_KEY = "cet.listening.bounds.v1";
+  var customBounds = {};  // setId -> { lineIndex: {s, e} }
+  function loadBounds() {
+    try {
+      var raw = localStorage.getItem(BOUND_KEY);
+      customBounds = raw ? (JSON.parse(raw) || {}) : {};
+    } catch (e) { customBounds = {}; }
+  }
+  function saveBounds() {
+    try { localStorage.setItem(BOUND_KEY, JSON.stringify(customBounds)); } catch (e) { /* 忽略 */ }
+  }
+  function getBound(setId, i) {
+    var b = customBounds[setId] && customBounds[setId][i];
+    return (b && isFinite(b.s) && isFinite(b.e) && b.e > b.s) ? b : null;
+  }
+  function setBound(setId, i, s, e) {
+    customBounds[setId] = customBounds[setId] || {};
+    customBounds[setId][i] = { s: s, e: e };
+    saveBounds();
+  }
+  function clearBound(setId, i) {
+    if (!customBounds[setId]) return;
+    delete customBounds[setId][i];
+    saveBounds();
+  }
+  loadBounds();
   var lineRates = {};     // 句 id -> 倍速（0.5–2.0，步进 0.05）
   var lineLoops = {};     // 句 id -> 是否开启单句循环
   var lineReps = {};      // 句 id -> 循环遍数（1/3/5/10）
@@ -1859,6 +1886,8 @@ window.CET = window.CET || {};
     // 句界：优先用 ffmpeg 停顿检测写进数据的 set.lineBounds（相对本篇 clip）；
     // 没有实测数据的套题才退回按句长估算。
     function clipTiming(p, i) {
+      var cb = getBound(set.id, i);
+      if (cb) return { start: cb.s, end: cb.e, custom: true };
       var lb = set.lineBounds && set.lineBounds[i];
       if (lb && isFinite(lb[0]) && isFinite(lb[1]) && lb[1] > lb[0]) {
         return { start: lb[0], end: lb[1] };
@@ -1918,6 +1947,28 @@ window.CET = window.CET || {};
               'aria-label="第 ' + (i + 1) + ' 句循环" aria-pressed="' + (onLoop ? "true" : "false") + '">循环</button>' +
             '<label class="line-reps">遍数<select data-line-reps="' + i + '" aria-label="第 ' + (i + 1) + ' 句循环遍数">' +
               repOpts + "</select></label>" +
+            '<button class="line-calib' + (getBound(set.id, i) ? " on" : "") + '" data-line-calib="' + i + '" type="button" ' +
+              'aria-label="校准第 ' + (i + 1) + ' 句句界" title="校准音频与这句话的对应时间">' +
+              (getBound(set.id, i) ? "已校准" : "校准") + "</button>" +
+          "</div>" +
+          '<div class="calib-panel" data-calib-panel="' + i + '" hidden>' +
+            '<div class="calib-row">' +
+              '<span class="calib-title">句界校准 · 第 ' + (i + 1) + ' 句</span>' +
+              '<span class="calib-src" data-calib-src="' + i + '"></span>' +
+            "</div>" +
+            '<div class="calib-row">' +
+              '<label>起点 <input type="number" step="0.01" min="0" data-calib-s="' + i + '" aria-label="起点秒数" /></label>' +
+              '<button class="chip xs" type="button" data-calib-mark="' + i + '" data-field="s">取当前</button>' +
+            "</div>" +
+            '<div class="calib-row">' +
+              '<label>终点 <input type="number" step="0.01" min="0" data-calib-e="' + i + '" aria-label="终点秒数" /></label>' +
+              '<button class="chip xs" type="button" data-calib-mark="' + i + '" data-field="e">取当前</button>' +
+            "</div>" +
+            '<div class="calib-row calib-actions">' +
+              '<button class="chip sm primary" type="button" data-calib-save="' + i + '">保存校准</button>' +
+              '<button class="chip sm" type="button" data-calib-clear="' + i + '">清除</button>' +
+            "</div>" +
+            '<p class="calib-tip">播放音频，把进度拖到这句话开始处点起点「取当前」，结束处点终点「取当前」，再保存；也可直接输入秒数。</p>' +
           "</div>" +
         "</div>";
       }).join("");
@@ -2059,6 +2110,8 @@ window.CET = window.CET || {};
     function lineTiming(i) {
       var a = root.querySelector("#origAudio");
       var dur = a && isFinite(a.duration) && a.duration > 0 ? a.duration : 0;
+      var cb = getBound(set.id, i);
+      if (cb) return { start: cb.s, end: cb.e, exact: true, custom: true };
       var lb = set.lineBounds && set.lineBounds[i];
       if (lb && isFinite(lb[0]) && isFinite(lb[1]) && lb[1] > lb[0]) {
         return { start: lb[0], end: lb[1], exact: true };
@@ -2074,11 +2127,12 @@ window.CET = window.CET || {};
       if (!dur || !total || !ws[i]) { return { start: NaN, end: NaN, exact: false }; }
       return { start: (acc / total) * dur, end: ((acc + ws[i]) / total) * dur, exact: false };
     }
-    function seekHint(i, t) {
-      return t && t.exact
-        ? "正在播放第 " + (i + 1) + " 句（实测句界）"
-        : "正在播放第 " + (i + 1) + " 句附近（按句长估算，可能不准）";
-    }
+  function seekHint(i, t) {
+    if (t && t.custom) return "正在播放第 " + (i + 1) + " 句（已校准）";
+    return t && t.exact
+      ? "正在播放第 " + (i + 1) + " 句（实测句界）"
+      : "正在播放第 " + (i + 1) + " 句附近（按句长估算，可能不准 · 可点「校准」修正）";
+  }
     function activeClip() {
       var found = null;
       root.querySelectorAll(".tp-audio").forEach(function (a) {
@@ -2372,12 +2426,87 @@ window.CET = window.CET || {};
         setHint("第 " + (i + 1) + " 句循环遍数设为 " + v + " 遍", "");
       });
     });
-    // 控件区的点击/拖动/键盘事件不要冒泡到整句（否则会误触发播放）
-    root.querySelectorAll(".line-ctl").forEach(function (box) {
+    // 控件区 + 校准面板的点击/拖动/键盘事件不要冒泡到整句（否则会误触发播放）
+    root.querySelectorAll(".line-ctl, .calib-panel").forEach(function (box) {
       box.addEventListener("click", function (e) { e.stopPropagation(); });
       box.addEventListener("mousedown", function (e) { e.stopPropagation(); });
       box.addEventListener("keydown", function (e) { e.stopPropagation(); });
     });
+
+    // ---- 句界校准面板 ----
+    function currentAudioTime() {
+      var a = activeClip() || root.querySelector("#origAudio");
+      return a && isFinite(a.currentTime) ? a.currentTime : null;
+    }
+    function boundSourceText(i) {
+      if (getBound(set.id, i)) return "已校准";
+      var lb = set.lineBounds && set.lineBounds[i];
+      return (lb && isFinite(lb[0]) && isFinite(lb[1])) ? "实测句界" : "按句长估算";
+    }
+    function openCalib(i, open) {
+      var panel = root.querySelector('[data-calib-panel="' + i + '"]');
+      if (!panel) return;
+      panel.hidden = !open;
+      if (open) {
+        var sIn = root.querySelector('[data-calib-s="' + i + '"]');
+        var eIn = root.querySelector('[data-calib-e="' + i + '"]');
+        var cb = getBound(set.id, i);
+        var lb = set.lineBounds && set.lineBounds[i];
+        var sVal = cb ? cb.s : (lb && isFinite(lb[0]) ? lb[0] : 0);
+        var eVal = cb ? cb.e : (lb && isFinite(lb[1]) ? lb[1] : 0);
+        if (sIn) sIn.value = Number(sVal).toFixed(2);
+        if (eIn) eIn.value = Number(eVal).toFixed(2);
+        var src = root.querySelector('[data-calib-src="' + i + '"]');
+        if (src) src.textContent = "当前：" + boundSourceText(i);
+      }
+    }
+    root.querySelectorAll("[data-line-calib]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = parseInt(b.getAttribute("data-line-calib"), 10);
+        var panel = root.querySelector('[data-calib-panel="' + i + '"]');
+        openCalib(i, panel && panel.hidden);
+      });
+    });
+    root.querySelectorAll("[data-calib-mark]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = parseInt(b.getAttribute("data-calib-mark"), 10);
+        var field = b.getAttribute("data-field");
+        var t = currentAudioTime();
+        if (t === null) { setHint("请先播放音频，再把进度拖到对应位置", "warn"); return; }
+        var input = root.querySelector('[data-calib-' + field + '="' + i + '"]');
+        if (input) { input.value = t.toFixed(2); input.focus(); }
+        setHint("已填入第 " + (i + 1) + " 句" + (field === "s" ? "起点" : "终点") + "：" + t.toFixed(2) + "s", "");
+      });
+    });
+    root.querySelectorAll("[data-calib-save]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = parseInt(b.getAttribute("data-calib-save"), 10);
+        var s = parseFloat((root.querySelector('[data-calib-s="' + i + '"]') || {}).value);
+        var e = parseFloat((root.querySelector('[data-calib-e="' + i + '"]') || {}).value);
+        if (!isFinite(s) || !isFinite(e) || s < 0 || e <= s) {
+          setHint("起点/终点无效：需满足 0 ≤ 起点 < 终点", "warn");
+          return;
+        }
+        setBound(set.id, i, s, e);
+        var btn = root.querySelector('[data-line-calib="' + i + '"]');
+        if (btn) { btn.classList.add("on"); btn.textContent = "已校准"; }
+        var src = root.querySelector('[data-calib-src="' + i + '"]');
+        if (src) src.textContent = "当前：已校准";
+        setHint("第 " + (i + 1) + " 句句界已校准为 " + s.toFixed(2) + "–" + e.toFixed(2) + "s，播放按此定位", "ok");
+        UI().toast("第 " + (i + 1) + " 句已校准并保存", "success");
+      });
+    });
+    root.querySelectorAll("[data-calib-clear]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = parseInt(b.getAttribute("data-calib-clear"), 10);
+        clearBound(set.id, i);
+        var btn = root.querySelector('[data-line-calib="' + i + '"]');
+        if (btn) { btn.classList.remove("on"); btn.textContent = "校准"; }
+        openCalib(i, true);
+        setHint("第 " + (i + 1) + " 句已恢复为" + boundSourceText(i), "");
+      });
+    });
+
     function applyBulkRate(v) {
       v = Math.min(2, Math.max(0.5, Math.round(v * 20) / 20));
       (set.lines || []).forEach(function (line, i) {
@@ -2470,7 +2599,7 @@ window.CET = window.CET || {};
       player.idx = i;
       highlightLine(i);
       syncLoopUi();
-      setHint("正在播放第 " + (i + 1) + " 句 · " + lineRate(i).toFixed(2) + "× · " +
+      setHint("正在播放第 " + (i + 1) + " 句" + (t.custom ? "（已校准）" : "") + " · " + lineRate(i).toFixed(2) + "× · " +
         t.start.toFixed(2) + "–" + t.end.toFixed(2) + "s" +
         (lineLoops[i] ? " · 循环 " + loopTotal + " 遍" : ""), "");
       var pr = a.play();
