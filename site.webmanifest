@@ -1,0 +1,55 @@
+{
+  "name": "CET 学习岛 · 四六级备考",
+  "short_name": "CET 学习岛",
+  "description": "四六级（CET-4 / CET-6）备考工具：高频词汇、听力精听、口语练习、学习小组与积分激励，无需联网、数据保存在本机浏览器。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "id": "/tangximo/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "orientation": "portrait-primary",
+  "background_color": "#07152E",
+  "theme_color": "#07152E",
+  "categories": [
+    "education",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "高频词汇",
+      "short_name": "词汇",
+      "url": "./#vocab"
+    },
+    {
+      "name": "听力精听",
+      "short_name": "听力",
+      "url": "./#listening"
+    }
+  ]
+}
