@@ -3,10 +3,96 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="CET 学习岛：四六级高频词汇、口语录音、听力精听、学习小组与积分系统" />
-  <title>CET 学习岛 · 四六级备考</title>
-  <link rel="icon" href="data:," />
+
+  <title>四六级备考学习岛 · CET-4/CET-6 高频词汇与听力精听 | CET 学习岛</title>
+  <meta name="description" content="CET 学习岛是免费的四六级备考工具：按考纲归类的高频词汇、真题听力精听与逐句回放、口语跟读练习、学习小组打卡和积分激励。打开即用，无需注册，数据只保存在本机浏览器。" />
+  <meta name="keywords" content="四六级,四级,六级,CET4,CET6,四六级词汇,四六级高频词汇,四级听力,六级听力,听力精听,四六级口语,四六级备考" />
+  <meta name="author" content="tangximo" />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+
+  <link rel="canonical" href="https://tangximo.github.io/tangximo/" />
+
+  <!-- 主题色：#07152E 与暗色主题底色一致，安卓 Chrome 顶栏可与页面无缝融合 -->
+  <meta name="theme-color" content="#07152E" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#07152E" media="(prefers-color-scheme: light)" />
+  <meta name="color-scheme" content="dark light" />
+
+  <!-- Open Graph：GitHub Pages 子路径部署，分享类元数据必须用绝对地址 -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CET 学习岛" />
+  <meta property="og:locale" content="zh_CN" />
+  <meta property="og:title" content="四六级备考学习岛 · 词汇 / 听力 / 口语一站式" />
+  <meta property="og:description" content="CET-4/CET-6 高频词汇、真题听力精听、口语跟读与学习小组打卡，免费无需注册，打开即用。" />
+  <meta property="og:url" content="https://tangximo.github.io/tangximo/" />
+  <meta property="og:image" content="https://tangximo.github.io/tangximo/assets/og-image-1200x630.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="CET 学习岛：四六级备考学习岛，包含高频词汇、听力精听、口语练习、学习小组与积分激励" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="四六级备考学习岛 · 词汇 / 听力 / 口语一站式" />
+  <meta name="twitter:description" content="CET-4/CET-6 高频词汇、真题听力精听、口语跟读与学习小组打卡，免费无需注册。" />
+  <meta name="twitter:image" content="https://tangximo.github.io/tangximo/assets/og-image-1200x630.png" />
+  <meta name="twitter:image:alt" content="CET 学习岛分享图" />
+
+  <!-- 内联 SVG 图标（替换原来的空 data:,） -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%2307152E%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2235%22%20font-family%3D%22Segoe%20UI%2CHelvetica%2CArial%2Csans-serif%22%20font-size%3D%2221%22%20font-weight%3D%22700%22%20fill%3D%22%237FD4FF%22%20text-anchor%3D%22middle%22%3ECET%3C%2Ftext%3E%3Cpath%20d%3D%22M12%2047q5-4%2010%200t10%200%2010%200%2010%200%2010%200%22%20fill%3D%22none%22%20stroke%3D%22%232E6CE8%22%20stroke-width%3D%223.2%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-180.png" />
+  <link rel="manifest" href="site.webmanifest" />
+
   <link rel="stylesheet" href="assets/css/main.css?v=20261106h" />
+
+  <!-- 版本号注入点：CI 会把这一行的 data-version 替换成当次构建版本，
+       所有「按需加载」的脚本都会自动带上它，不再需要手工改每个 ?v= -->
+  <script id="cetBoot" data-version="20261106h">
+    window.CET_VERSION = document.getElementById("cetBoot").getAttribute("data-version");
+  </script>
+
+  <!-- ============================================================
+       首屏同步加载（保持原始执行顺序不变，安全性最高）
+       ------------------------------------------------------------
+       相对原版移出的内容：
+         · 大数据文件：listening-extra(1.2MB) / listening-restore(277KB) /
+           listening-bounds(101KB) / listening-audio-online
+         · 6 个视图脚本中的 5 个（vocab/speaking/listening/groups/points）
+       这些改由 CET.loader 在用户真正进入对应页面时按需加载。
+       ============================================================ -->
+
+  <script src="assets/js/data/words-4a.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4b.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4c.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4d.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4e.js?v=20261105f"></script>
+  <script src="assets/js/data/words-4f.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6a.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6b.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6c.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6d.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6e.js?v=20261105f"></script>
+  <script src="assets/js/data/words-6f.js?v=20261105f"></script>
+  <script src="assets/js/data/words.js?v=20261105f"></script>
+
+  <!-- 听力：套题列表元数据（首页要显示「已完成 X / Y 套」，必须首屏有） -->
+  <script src="assets/js/data/listening.js?v=20261125j"></script>
+  <script src="assets/js/data/listening-cet4.js?v=20261125j"></script>
+  <script src="assets/js/data/listening-cet6.js?v=20261125j"></script>
+  <script src="assets/js/data/listening-2025-12.js?v=20261125j"></script>
+
+  <script src="assets/js/data/speaking.js?v=20261105f"></script>
+
+  <!-- 核心 -->
+  <script src="assets/js/core/store.js?v=20261105f"></script>
+  <script src="assets/js/core/audio-store.js?v=20261105f"></script>
+  <script src="assets/js/core/ui.js?v=20261105f"></script>
+  <script src="assets/js/core/loader.js?v=20261125n"></script>
+
+  <!-- 首页视图（唯一同步加载的视图） -->
+  <script src="assets/js/views/dashboard.js?v=20261105f"></script>
+
+  <!-- 入口必须最后 -->
+  <script src="assets/js/app.js?v=20261125n"></script>
 </head>
 <body>
   <div class="shell">
@@ -58,41 +144,5 @@
   </div>
 
   <div id="toastHost" class="toast-host" aria-live="polite"></div>
-
-  <script src="assets/js/data/words-4a.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4b.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4c.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4d.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4e.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4f.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6a.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6b.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6c.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6d.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6e.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6f.js?v=20261105f"></script>
-  <script src="assets/js/data/words.js?v=20261105f"></script>
-  <script src="assets/js/data/listening.js?v=20261106e"></script>
-  <script src="assets/js/data/listening-cet4.js?v=20261123a"></script>
-  <script src="assets/js/data/listening-cet6.js?v=20261123a"></script>
-  <script src="assets/js/data/listening-audio-online.js?v=20261124a"></script>
-  <script src="assets/js/data/listening-extra.js?v=20261124a"></script>
-  <script src="assets/js/data/listening-restore.js?v=20261125b"></script>
-  <script src="assets/js/data/listening-2025-06-cet6-s1.js?v=20261125b"></script>
-  <script src="assets/js/data/listening-2025-12.js?v=20261124a"></script>
-  <script src="assets/js/data/listening-2025-12-cet4-s1.js?v=20261124a"></script>
-  <script src="assets/js/data/listening-bounds.js?v=20261125j"></script>
-  <script src="assets/js/data/listening-2025-06-cet4-s1-r6.js?v=20261125m"></script>
-  <script src="assets/js/data/speaking.js?v=20261105f"></script>
-  <script src="assets/js/core/store.js?v=20261105f"></script>
-  <script src="assets/js/core/audio-store.js?v=20261105f"></script>
-  <script src="assets/js/core/ui.js?v=20261105f"></script>
-  <script src="assets/js/views/dashboard.js?v=20261105f"></script>
-  <script src="assets/js/views/vocab.js?v=20261105f"></script>
-  <script src="assets/js/views/speaking.js?v=20261105f"></script>
-  <script src="assets/js/views/listening.js?v=20261125i"></script>
-  <script src="assets/js/views/groups.js?v=20261105f"></script>
-  <script src="assets/js/views/points.js?v=20261105f"></script>
-  <script src="assets/js/app.js?v=20261105f"></script>
 </body>
 </html>
