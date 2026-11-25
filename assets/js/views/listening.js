@@ -1960,7 +1960,7 @@ window.CET = window.CET || {};
       var playerRow = p.clip
         ? '<div class="tp-player">' +
             '<button class="btn sm" type="button" data-tp-play="' + pi + '">播放本篇</button>' +
-            '<audio class="tp-audio" data-tp-audio="' + pi + '" controls preload="metadata" playsinline src="' + UI().esc(p.clip) + '"></audio>' +
+            '<audio class="tp-audio" data-tp-audio="' + pi + '" controls preload="metadata" playsinline type="audio/mpeg" src="' + UI().esc(p.clip) + '"></audio>' +
             '<span class="tiny dim tp-dur">本篇 ' + fmtDur(p.dur || 0) + "</span>" +
             '<button class="chip' + (passLoop === pi ? " active" : "") + '" type="button" data-tp-loop="' + pi + '">本篇循环</button>' +
           "</div>"
@@ -2037,7 +2037,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
-        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125a（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125b（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
@@ -2143,8 +2143,12 @@ window.CET = window.CET || {};
         p.catch(function (err) {
           stopAt = null;
           var code = err && err.name ? err.name : "Error";
+          var me = "";
+          try { if (a.error) { me = " / 媒体错误码 " + a.error.code; } } catch (e2) { /* 忽略 */ }
           var tip = "播放失败：" + code +
-            (code === "NotAllowedError" ? "（浏览器要求先点一下页面再播放）" : "：" + (err && err.message ? err.message : "未知原因"));
+            (code === "NotAllowedError" ? "（浏览器要求先点一下页面再播放）" : "：" + (err && err.message ? err.message : "未知原因")) +
+            me + "（readyState " + a.readyState + "，networkState " + a.networkState + "）";
+          try { console.error("[听力播放失败-整卷]", tip, a); } catch (e3) { /* 忽略 */ }
           setHint(tip, "warn");
           UI().toast("原音播放失败，可用上方音频条手动播放", "error");
         });
@@ -2165,7 +2169,11 @@ window.CET = window.CET || {};
         if (p && p.catch) {
           p.catch(function (err) {
             var code = err && err.name ? err.name : "Error";
-            var tip = "播放失败：" + code + "：" + (err && err.message ? err.message : "未知原因");
+            var me = "";
+            try { if (a.error) { me = " / 媒体错误码 " + a.error.code; } } catch (e2) { /* 忽略 */ }
+            var tip = "播放失败：" + code + "：" + (err && err.message ? err.message : "未知原因") + me +
+              "（readyState " + a.readyState + "，networkState " + a.networkState + "）";
+            try { console.error("[听力播放失败-整卷]", tip, a); } catch (e3) { /* 忽略 */ }
             setHint(tip, "warn");
             UI().toast("原音播放失败，可用上方音频条手动播放", "error");
           });
@@ -2583,7 +2591,10 @@ window.CET = window.CET || {};
           return;
         }
         var detail = describe(err);
-        setHint("播放失败 —— " + detail, "warn");
+        try { console.error("[听力播放失败]", detail, a); } catch (e) { /* 忽略 */ }
+        var cap = "";
+        try { cap = "，本浏览器支持 mp3：" + (a.canPlayType("audio/mpeg") || "否"); } catch (e) { /* 忽略 */ }
+        setHint("播放失败 —— " + detail + cap + "（请把这整段文字发给我）", "warn");
         UI().toast("播放失败：" + detail, "error");
       }
       try { a.playbackRate = rate; } catch (e) { /* 忽略 */ }
