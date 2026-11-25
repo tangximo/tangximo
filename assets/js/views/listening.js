@@ -2037,7 +2037,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
-        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125d（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125e（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
@@ -2571,7 +2571,9 @@ window.CET = window.CET || {};
         try {
           var d = a.duration;
           var t = (isFinite(d) && d > 0) ? Math.min(want, Math.max(0, d - 0.15)) : want;
-          if (Math.abs((a.currentTime || 0) - t) > 0.25) {
+          // 阈值收紧到 60ms：之前的 250ms 容差会让「上一句停在句尾、再点下一句」时
+          // 判定为「位置已对」而不重新定位，听感上就是从上一句末尾接着播。
+          if (Math.abs((a.currentTime || 0) - t) > 0.06) {
             markInternalSeek();
             a.currentTime = t;
           }
@@ -2642,6 +2644,7 @@ window.CET = window.CET || {};
       a.addEventListener("loadedmetadata", once);
       if (pr && pr.then) { pr.then(null, onFail); } else { align(); }
     }
+    var startGuard = 0;
     function playClipAt(pi, i) {
       var p = passages[pi];
       var a = clipAudio(pi);
@@ -2662,6 +2665,7 @@ window.CET = window.CET || {};
       var max = (isFinite(a.duration) && a.duration > 0) ? a.duration : (p.dur || 0);
       var startAt = Math.min(Math.max(0, t.start), Math.max(0, max - 0.2));
       player.idx = i;
+      startGuard = Date.now() + 1500;
       highlightLine(i);
       syncLoopUi();
       setHint("正在播放第 " + (i + 1) + " 句" + (t.custom ? "（已校准）" : "") + " · " + lineRate(i).toFixed(2) + "× · " +
@@ -2755,6 +2759,13 @@ window.CET = window.CET || {};
         var hit = player.idx >= 0 ? passageOf(player.idx) : null;
         if (hit && hit.pi === piNow) {
           var t2 = clipTiming(hit.p, player.idx);
+          // 刚点开这句的前 1.5 秒里，如果播放位置跑到了句界之前，立刻拉回，
+          // 避免把上一句的尾音也播出来
+          if (startGuard && Date.now() < startGuard && t2.start > 0.05 && a.currentTime < t2.start - 0.05) {
+            markInternalSeek();
+            try { a.currentTime = t2.start; } catch (e) { /* 忽略 */ }
+            return;
+          }
           // 容差 0.15s：timeupdate 在低倍速下粒度较粗，允许略微过冲，但绝不提前切
           if (t2.end > t2.start && a.currentTime >= t2.end - 0.02) {
             if (loopLine === player.idx && loopTotal > 1) {
