@@ -22,7 +22,7 @@ window.CET = window.CET || {};
   // 每句独立的倍速 / 循环 / 遍数：按套 + 句 id 存在 localStorage（刷新、切篇后仍保留）
   var LINE_CTL_KEY = "cet.listening.lineCtl.v2";
   // 用户手动校准的句界：setId -> 句 id -> {s, e}（秒）。刷新后保留，优先级高于实测/估算。
-  var BOUND_KEY = "cet.listening.bounds.v2";
+  var BOUND_KEY = "cet.listening.bounds.v3";
   var customBounds = {};  // setId -> { lineIndex: {s, e} }
   function loadBounds() {
     try {
@@ -2037,7 +2037,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
-        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125g（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125i（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
@@ -2534,7 +2534,8 @@ window.CET = window.CET || {};
     }
     // 句尾淡出后再暂停/跳转。设备（尤其蓝牙耳机、部分手机）有 100~300ms 的输出延迟，
     // 到句界立刻 pause() 会把末词的尾音吞掉，听感就是「最后一个词被切断」。
-    // 这里在句界处先做 160ms 淡出，淡完再暂停，等于多给设备一点缓冲。
+    // 这里在句界处先做一个短淡出（70ms），淡完再暂停，等于多给设备一点缓冲。
+    // 句界数据已保证句尾静音，淡出只发生在静音里，不会吃掉末词。
     function cancelTailStop(a) {
       if (a.__tailTimer) { clearInterval(a.__tailTimer); a.__tailTimer = null; }
       if (a.__tailStop) {
@@ -2550,7 +2551,7 @@ window.CET = window.CET || {};
       a.__tailVol = v0;
       var t0 = Date.now();
       a.__tailTimer = setInterval(function () {
-        var k = (Date.now() - t0) / 160;
+        var k = (Date.now() - t0) / 70;
         // 硬上限：即使定时器被拖慢，也不能播过 hardStop（避免带出下一句开头）
         var over = hardStop && a.currentTime >= hardStop;
         if (k >= 1 || over) {
@@ -2723,8 +2724,12 @@ window.CET = window.CET || {};
         syncClipBtn(pi);
         syncLoopUi();
         if (player.idx < 0) { setHint("正在播放本篇音频", ""); }
+        else { startLineGuard(parseInt(pi, 10)); }
       });
-      a.addEventListener("pause", function () { syncClipBtn(pi); });
+      a.addEventListener("pause", function () {
+        syncClipBtn(pi);
+        if (a.__lineGuard) { clearInterval(a.__lineGuard); a.__lineGuard = null; }
+      });
       a.addEventListener("seeking", function () {
         if (isInternalSeek()) { return; }
         if (loopLine >= 0) {
@@ -2735,6 +2740,7 @@ window.CET = window.CET || {};
       });
       a.addEventListener("ended", function () {
         syncClipBtn(pi);
+        if (a.__lineGuard) { clearInterval(a.__lineGuard); a.__lineGuard = null; }
         var piNow = parseInt(pi, 10);
         // 最后一句的句尾恰好等于音频总时长时，timeupdate 可能来不及触发单句循环，
         // 音频就已 ended。这里补上：若当前句仍在单句循环且遍数未满，跳回句首继续。
@@ -2763,9 +2769,10 @@ window.CET = window.CET || {};
         setHint("本篇循环：已从头重新播放", "");
         seekThenPlay(a, Math.max(0, tLoop.start || 0), 1);
       });
-      a.addEventListener("timeupdate", function () {
+      // 句界检查：timeupdate 的触发间隔在 Chrome 里可达 250ms，靠它判句尾会过冲，
+      // 容易把下一句开头带出来。这里抽成函数，timeupdate 之外再用 40ms 定时器兜一层。
+      function checkLineProgress(piNow) {
         if (a.paused) { return; }
-        var piNow = parseInt(pi, 10);
         var hit = player.idx >= 0 ? passageOf(player.idx) : null;
         if (hit && hit.pi === piNow) {
           var t2 = clipTiming(hit.p, player.idx);
@@ -2776,10 +2783,9 @@ window.CET = window.CET || {};
             try { a.currentTime = t2.start; } catch (e) { /* 忽略 */ }
             return;
           }
-          // 容差 0.15s：timeupdate 在低倍速下粒度较粗，允许略微过冲，但绝不提前切
-          // 到句界前 0.12s 开始淡出：淡出 160ms 正好在句界附近停住，
-          // 既留出设备延迟余量，又不会把下一句的开头播出来
-          var fadeFrom = Math.max(t2.start + 0.15, t2.end - 0.12);
+          // 句界数据已保证句尾有 >=0.1s 静音，因此只在最后 60ms 做 70ms 淡出：
+          // 淡出起点落在静音里，绝不会吃掉末词；淡完（end+10ms）再暂停，给设备留缓冲。
+          var fadeFrom = Math.max(t2.start + 0.15, t2.end - 0.06);
           if (t2.end > t2.start && a.currentTime >= fadeFrom) {
             if (loopLine === player.idx && loopTotal > 1) {
               loopDone += 1;
@@ -2806,6 +2812,20 @@ window.CET = window.CET || {};
             }
           }
         }
+      }
+      function startLineGuard(piNow) {
+        if (a.__lineGuard) { clearInterval(a.__lineGuard); a.__lineGuard = null; }
+        a.__lineGuard = setInterval(function () {
+          if (a.paused || player.idx < 0) {
+            clearInterval(a.__lineGuard);
+            a.__lineGuard = null;
+            return;
+          }
+          checkLineProgress(piNow);
+        }, 40);
+      }
+      a.addEventListener("timeupdate", function () {
+        checkLineProgress(parseInt(pi, 10));
         highlightLine(player.idx);
       });
       a.addEventListener("error", function () {
