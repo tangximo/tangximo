@@ -1733,6 +1733,28 @@ window.CET = window.CET || {};
       audioToolsHtml(res) +
     "</div>";
 
+    // 首播提速：滚到哪一篇就提前拉哪一篇的音频（只预载可见篇，避免一次下 8 个文件）
+    (function warmClips() {
+      var list = root.querySelectorAll(".tp-audio");
+      if (!list.length) { return; }
+      var warm = function (a) {
+        if (!a || a.getAttribute("data-warm") === "1") { return; }
+        a.setAttribute("data-warm", "1");
+        try { a.setAttribute("preload", "auto"); } catch (e) { /* 忽略 */ }
+        if (a.paused && a.readyState === 0) { try { a.load(); } catch (e) { /* 忽略 */ } }
+      };
+      warm(list[0]);
+      if (!window.IntersectionObserver) { return; }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) { return; }
+          warm(en.target);
+          io.unobserve(en.target);
+        });
+      }, { rootMargin: "400px 0px" });
+      Array.prototype.forEach.call(list, function (a) { io.observe(a); });
+    })();
+
     bindCopyButtons(root);
     root.querySelector("#backSets").addEventListener("click", backToGrid);
     root.querySelector("#toIntensive").addEventListener("click", function () {
@@ -2037,7 +2059,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
-        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125i（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125n（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
