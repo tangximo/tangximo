@@ -1,0 +1,75 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stamp asset version into index.html
+        env:
+          VERSION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="$(git rev-parse --short=7 HEAD)"
+          echo "commit sha : $GITHUB_SHA"
+          echo "short sha  : $SHORT_SHA"
+          bash scripts/stamp-version.sh
+          echo "--- rewritten version refs ---"
+          grep -oE '(assets/[A-Za-z0-9_./-]+\.(js|css))\?v=[^"&:]*' index.html | head -n 10 || true
+
+      - name: Verify only index.html changed
+        run: |
+          set -euo pipefail
+          changed="$(git status --porcelain | grep -v '^.. index\.html$' || true)"
+          if [ -n "$changed" ]; then
+            echo "::error::unexpected modified files besides index.html"
+            echo "$changed"
+            exit 1
+          fi
+          if ! git diff --quiet -- index.html; then
+            echo "index.html rewritten for this deploy (not committed back)"
+          else
+            echo "index.html unchanged"
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+          include-hidden-files: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
