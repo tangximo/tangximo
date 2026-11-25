@@ -1,0 +1,18 @@
+# robots.txt for https://tangximo.github.io/tangximo/
+# CET 学习岛 · 四六级备考（纯静态站点 · GitHub Pages）
+
+User-agent: *
+Allow: /
+
+# 注意：本站是 GitHub Pages「项目站点」，根路径是 /tangximo/ 而不是 /。
+# 所以 Disallow 必须带 /tangximo/ 前缀，写成 /assets/audio/ 会指向域名根，屏蔽无效。
+# 音频体量大且不是可排名内容，屏蔽以节省抓取预算。
+Disallow: /tangximo/assets/audio/
+
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+Sitemap: https://tangximo.github.io/tangximo/sitemap.xml
