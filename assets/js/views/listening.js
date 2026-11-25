@@ -2037,7 +2037,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
-        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125b（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125d（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
@@ -2532,12 +2532,39 @@ window.CET = window.CET || {};
       var a = clipAudio(pi);
       if (b && a) { b.textContent = a.paused ? "播放本篇" : "暂停"; }
     }
-    // 定位并播放。要点：play() 必须留在点击的同一调用栈里同步调用。
-    // 之前为了「先定位再播」把 play() 推迟到 loadedmetadata/seeked 之后（最长 1.5s），
-    // 部分浏览器把这种延迟的 play() 当作非用户触发而直接拒绝（NotAllowedError），
-    // 页面就会提示「本篇音频播放失败」。现在改为：能定位就先定位，然后立刻同步 play()，
-    // 再在 playing/seeked/loadedmetadata 时复核一次位置，避免从头播一小段。
+    // 句尾淡出后再暂停/跳转。设备（尤其蓝牙耳机、部分手机）有 100~300ms 的输出延迟，
+    // 到句界立刻 pause() 会把末词的尾音吞掉，听感就是「最后一个词被切断」。
+    // 这里在句界处先做 160ms 淡出，淡完再暂停，等于多给设备一点缓冲。
+    function cancelTailStop(a) {
+      if (a.__tailTimer) { clearInterval(a.__tailTimer); a.__tailTimer = null; }
+      if (a.__tailStop) {
+        try { a.volume = (a.__tailVol == null ? 1 : a.__tailVol); } catch (e) { /* 忽略 */ }
+      }
+      a.__tailStop = false;
+    }
+    function tailFadeStop(a, after) {
+      if (a.__tailStop) { return; }
+      a.__tailStop = true;
+      var v0 = 1;
+      try { v0 = a.volume; } catch (e) { /* 忽略 */ }
+      a.__tailVol = v0;
+      var t0 = Date.now();
+      a.__tailTimer = setInterval(function () {
+        var k = (Date.now() - t0) / 160;
+        if (k >= 1) {
+          clearInterval(a.__tailTimer);
+          a.__tailTimer = null;
+          try { a.volume = v0; } catch (e) { /* 忽略 */ }
+          a.__tailStop = false;
+          if (typeof after === "function") { after(); }
+          else { try { a.pause(); } catch (e) { /* 忽略 */ } }
+        } else {
+          try { a.volume = Math.max(0, v0 * (1 - k)); } catch (e) { /* 忽略 */ }
+        }
+      }, 25);
+    }
     function seekThenPlay(a, startAt, rate) {
+      cancelTailStop(a);
       var want = Math.max(0, startAt || 0);
       var retriedAbort = false, retriedMuted = false;
       function align() {
@@ -2672,6 +2699,7 @@ window.CET = window.CET || {};
     root.querySelectorAll(".tp-audio").forEach(function (a) {
       var pi = a.getAttribute("data-tp-audio");
       a.addEventListener("play", function () {
+        cancelTailStop(a);
         root.querySelectorAll(".tp-audio").forEach(function (x) {
           if (x !== a) { x.pause(); }
         });
@@ -2732,18 +2760,23 @@ window.CET = window.CET || {};
             if (loopLine === player.idx && loopTotal > 1) {
               loopDone += 1;
               if (loopDone >= loopTotal) {
-                try { a.pause(); } catch (e) { /* 忽略 */ }
+                tailFadeStop(a);
                 setHint("第 " + (player.idx + 1) + " 句已循环 " + loopTotal + " 遍（" +
                   t2.start.toFixed(2) + "–" + t2.end.toFixed(2) + "s），自动停止", "ok");
                 loopLine = -1;
                 loopDone = 0;
               } else {
-                markInternalSeek();
-                try { a.currentTime = t2.start; } catch (e) { /* 忽略 */ }
+                // 循环重播也先淡出，避免每遍都切掉末词尾音
+                tailFadeStop(a, function () {
+                  markInternalSeek();
+                  try { a.currentTime = t2.start; } catch (e) { /* 忽略 */ }
+                  var prl = a.play();
+                  if (prl && prl.catch) { prl.catch(function () { /* 忽略 */ }); }
+                });
                 setHint("第 " + (player.idx + 1) + " 句循环中：第 " + (loopDone + 1) + " / " + loopTotal + " 遍", "");
               }
             } else {
-              try { a.pause(); } catch (e) { /* 忽略 */ }
+              tailFadeStop(a);
               setHint("第 " + (player.idx + 1) + " 句播完（" + t2.start.toFixed(2) + "–" + t2.end.toFixed(2) + "s）", "ok");
               loopLine = -1;
             }
