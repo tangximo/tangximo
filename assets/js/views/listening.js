@@ -2778,7 +2778,7 @@ window.CET = window.CET || {};
           var t2 = clipTiming(hit.p, player.idx);
           // 刚点开这句的前 1.5 秒里，如果播放位置跑到了句界之前，立刻拉回，
           // 避免把上一句的尾音也播出来
-          if (startGuard && Date.now() < startGuard && t2.start > 0.05 && a.currentTime < t2.start - 0.05) {
+          if (startGuard && Date.now() < startGuard && !a.seeking && t2.start > 0.05 && a.currentTime < t2.start - 0.2) {
             markInternalSeek();
             try { a.currentTime = t2.start; } catch (e) { /* 忽略 */ }
             return;
