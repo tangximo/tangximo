@@ -2037,6 +2037,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125a（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
@@ -2530,6 +2531,7 @@ window.CET = window.CET || {};
     // 再在 playing/seeked/loadedmetadata 时复核一次位置，避免从头播一小段。
     function seekThenPlay(a, startAt, rate) {
       var want = Math.max(0, startAt || 0);
+      var retriedAbort = false, retriedMuted = false;
       function align() {
         try {
           var d = a.duration;
@@ -2540,15 +2542,49 @@ window.CET = window.CET || {};
           }
         } catch (e) { /* 忽略 */ }
       }
+      function describe(err) {
+        var code = err && err.name ? err.name : "Error";
+        var msg = (err && err.message) ? err.message : "未知原因";
+        var me = "";
+        try { if (a.error) { me = " / 媒体错误码 " + a.error.code; } } catch (e) { /* 忽略 */ }
+        var src = "";
+        try { src = (a.currentSrc || a.getAttribute("src") || "").split("/").pop(); } catch (e) { /* 忽略 */ }
+        return code + "：" + msg + me + "（readyState " + a.readyState + "，networkState " + a.networkState +
+          "，文件 " + src + "）";
+      }
+      function attempt(muted) {
+        try { if (muted) { a.muted = true; } } catch (e) { /* 忽略 */ }
+        var pr;
+        try { pr = a.play(); } catch (e) { onFail(e); return; }
+        if (pr && pr.then) {
+          pr.then(function () {
+            if (muted) {
+              try { a.muted = false; } catch (e) { /* 忽略 */ }
+              setHint("已开始播放（兼容模式：静音启动后恢复声音）", "");
+            }
+            align();
+          }, onFail);
+        } else {
+          align();
+        }
+      }
       function onFail(err) {
         var code = err && err.name ? err.name : "Error";
-        if (code === "NotAllowedError") {
-          setHint("浏览器拦下了这次播放，请再点一次「播放本篇」", "warn");
-          UI().toast("浏览器未允许自动播放，再点一次即可", "warn");
+        // AbortError：定位/暂停打断了这次 play()，普通重试一次即可
+        if (code === "AbortError" && !retriedAbort) {
+          retriedAbort = true;
+          attempt(false);
           return;
         }
-        setHint("播放失败：" + code + "：" + (err && err.message ? err.message : "未知原因"), "warn");
-        UI().toast("本篇音频播放失败，可用完整版整卷原音", "error");
+        // NotAllowedError：浏览器拦了有声自动播放，用静音再试一次（几乎都能过）
+        if ((code === "NotAllowedError" || code === "NotSupportedError") && !retriedMuted) {
+          retriedMuted = true;
+          attempt(true);
+          return;
+        }
+        var detail = describe(err);
+        setHint("播放失败 —— " + detail, "warn");
+        UI().toast("播放失败：" + detail, "error");
       }
       try { a.playbackRate = rate; } catch (e) { /* 忽略 */ }
       if (a.readyState >= 1) { align(); } else {
@@ -2566,7 +2602,7 @@ window.CET = window.CET || {};
       a.addEventListener("playing", once);
       a.addEventListener("seeked", once);
       a.addEventListener("loadedmetadata", once);
-      if (pr && pr.then) { pr.then(null, onFail); }
+      if (pr && pr.then) { pr.then(null, onFail); } else { align(); }
     }
     function playClipAt(pi, i) {
       var p = passages[pi];
