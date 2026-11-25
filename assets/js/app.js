@@ -1,4 +1,13 @@
-/* 应用入口：导航、主题、路由、全局状态刷新 */
+/* 应用入口：导航、主题、路由、全局状态刷新
+   ---------------------------------------------------------
+   2026-11 优化版：视图脚本改为按需加载
+   - 首屏只加载 dashboard 一个视图
+   - 其它视图在用户第一次点击时才下载对应 js
+   - 大数据文件（listening-extra/restore/bounds）由 views/listening.js 通过
+     CET.loader.ensureView 自行按需拉取，本文件不关心
+
+   依赖：assets/js/core/loader.js 必须先于本文件加载。
+   ========================================================= */
 window.CET = window.CET || {};
 
 (function () {
@@ -20,9 +29,31 @@ window.CET = window.CET || {};
     { id: "points", label: "积分中心" }
   ];
 
+  // 视图 -> 需要的脚本（按顺序加载）。dashboard 已在 index.html 同步加载，无需记录。
+  //
+  // 重要：listening 一组的顺序不能随意调。
+  // views/listening.js 内部的 setOf()/buildExamIndex() 会读取：
+  //   CET.data.listeningExtra / listeningBounds / listeningAudioOnline
+  // 这些必须在视图脚本执行之前就位，否则首次进入听力页会看到「数据缺失」。
+  var VIEW_SCRIPTS = {
+    vocab: ["assets/js/views/vocab.js"],
+    speaking: ["assets/js/views/speaking.js"],
+    listening: [
+      "assets/js/data/listening-audio-online.js",
+      "assets/js/data/listening-bounds.js",
+      "assets/js/data/listening-restore.js",
+      "assets/js/data/listening-extra.js",
+      "assets/js/views/listening.js"
+    ],
+    groups: ["assets/js/views/groups.js"],
+    points: ["assets/js/views/points.js"]
+  };
+
   var WEEK = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
   var current = "dashboard";
   var currentMeta = null;
+  // 防止用户快速连点时出现两次并行加载导致的重复渲染
+  var pendingView = null;
 
   function buildNav() {
     var nav = document.getElementById("mainNav");
@@ -87,7 +118,110 @@ window.CET = window.CET || {};
     refreshChrome();
   }
 
+  /**
+   * 切换视图。若目标视图的脚本还没加载，先显示加载态再加载。
+   *
+   * 路由说明（2026-11 新增）：
+   * 原来 setView() 只改内存变量，完全不读写 location.hash，导致：
+   *   ① #vocab 这类链接分享出去打不开对应页面
+   *   ② 浏览器前进/后退失效
+   *   ③ 刷新页面总是回到首页
+   * 现在把 hash 作为唯一事实来源：所有切换都会写 hash，
+   * 并监听 hashchange（含浏览器前进/后退、手动改地址栏）。
+   * 为避免循环，写 hash 时用内部标记区分「自己写的」和「用户触发的」。
+   */
+  var suppressHashChange = false;
+
+  function hashOf(id) {
+    return "#" + id;
+  }
+
+  function readHash() {
+    var raw = String(location.hash || "").replace(/^#\/?/, "");
+    // 只接受已知视图 id，非法值一律回落首页，避免坏链接导致白屏
+    var ok = NAV.some(function (n) { return n.id === raw; });
+    return ok ? raw : "dashboard";
+  }
+
+  function writeHash(id) {
+    if (readHash() === id && location.hash === hashOf(id)) return;
+    suppressHashChange = true;
+    try {
+      // 用 replaceState 不产生多余历史记录；首次进入时避免 push 一条空记录
+      if (location.hash) {
+        history.pushState(null, "", hashOf(id));
+      } else {
+        history.replaceState(null, "", hashOf(id));
+      }
+    } catch (e) {
+      // file:// 等受限环境降级为直接赋值
+      location.hash = hashOf(id);
+    }
+    // 交回事件循环后解除抑制，保证紧随其后的 hashchange 被正确忽略
+    setTimeout(function () { suppressHashChange = false; }, 0);
+  }
+
   function setView(id) {
+    var urls = VIEW_SCRIPTS[id] || [];
+
+    // 视图未注册且需要加载 -> 走异步路径
+    if (!CET.views[id] && urls.length) {
+      if (pendingView === id) return; // 同一视图已在加载中，忽略重复点击
+      // 切到别的视图时，放弃之前那个未完成的加载请求标记
+      if (pendingView && pendingView !== id) pendingView = null;
+      pendingView = id;
+
+      // 记录到地址栏，保证可分享 / 可刷新 / 前进后退可用
+      writeHash(id);
+
+      // 先切走旧视图，避免旧页面的定时器/音频继续跑
+      if (currentMeta && currentMeta.destroy) {
+        try { currentMeta.destroy(); } catch (e) {}
+      }
+      CET.ui.stopSpeak();
+      current = id;
+      currentMeta = null;
+
+      // 高亮导航 + 标题立即可见，用户感知不到"点不动"
+      refreshChrome();
+      var title = document.getElementById("viewTitle");
+      if (title) title.textContent = (NAV.filter(function (n) { return n.id === id; })[0] || {}).label || "";
+
+      var root = document.getElementById("viewRoot");
+      if (root) {
+        root.innerHTML = '<div class="view-enter" style="padding:48px 0;text-align:center">' +
+          '<p class="muted">正在加载页面…</p></div>';
+      }
+
+      CET.loader.loadScripts(urls).then(function () {
+        pendingView = null;
+        if (current !== id) return; // 加载期间用户已切到别处
+        if (!CET.views[id]) {
+          root.innerHTML = '<div class="empty">页面脚本未正确注册</div>';
+          return;
+        }
+        currentMeta = CET.views[id];
+        // 视图内部若还需要额外数据（如听力题库），由视图自己处理
+        if (currentMeta.ensureData) {
+          return currentMeta.ensureData().then(function () {
+            if (current === id) renderView();
+          });
+        }
+        renderView();
+      }).catch(function (err) {
+        pendingView = null;
+        console.error("[CET.app] 视图脚本加载失败：" + id, err);
+        if (current !== id) return;
+        root.innerHTML = '<div class="card"><h3 style="font-size:16px">页面加载失败</h3>' +
+          '<p class="muted small" style="margin-top:8px">网络不畅导致页面脚本没能下载，请检查网络后重试。</p>' +
+          '<button class="btn primary" id="cetRetryView" type="button" style="margin-top:14px">重试</button></div>';
+        var btn = document.getElementById("cetRetryView");
+        if (btn) btn.addEventListener("click", function () { setView(id); });
+      });
+      return;
+    }
+
+    // 已注册（同步路径，与旧行为一致）
     if (!CET.views[id]) return;
     if (currentMeta && currentMeta.destroy) {
       try { currentMeta.destroy(); } catch (e) {}
@@ -95,6 +229,13 @@ window.CET = window.CET || {};
     CET.ui.stopSpeak();
     current = id;
     currentMeta = CET.views[id];
+    writeHash(id);
+    if (currentMeta.ensureData) {
+      currentMeta.ensureData().then(function () {
+        if (current === id) renderView();
+      });
+      return;
+    }
     renderView();
   }
 
@@ -110,8 +251,26 @@ window.CET = window.CET || {};
     if (label) {
       label.textContent = now.getFullYear() + " 年 " + (now.getMonth() + 1) + " 月 " + now.getDate() + " 日 · " + WEEK[now.getDay()];
     }
+
+    // 支持用带 hash 的链接直达某个页面（如 #listening）。
+    // readHash() 会把非法 hash 回落成 dashboard，所以坏链接不会白屏。
+    var initial = readHash();
+    current = initial;
     currentMeta = CET.views[current];
-    renderView();
+
+    if (initial !== "dashboard" && VIEW_SCRIPTS[initial]) {
+      // 目标视图脚本还没加载，交给 setView 走异步加载路径
+      setView(initial);
+    } else {
+      renderView();
+    }
+
+    // 浏览器前进/后退、手动改地址栏
+    window.addEventListener("hashchange", function () {
+      if (suppressHashChange) return;
+      var id = readHash();
+      if (id !== current) setView(id);
+    });
 
     document.getElementById("themeBtn").addEventListener("click", function () {
       CET.store.state.theme = CET.store.state.theme === "light" ? "dark" : "light";
