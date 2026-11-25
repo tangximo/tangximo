@@ -2037,7 +2037,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
-        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125e（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125f（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
@@ -2542,7 +2542,7 @@ window.CET = window.CET || {};
       }
       a.__tailStop = false;
     }
-    function tailFadeStop(a, after) {
+    function tailFadeStop(a, after, hardStop) {
       if (a.__tailStop) { return; }
       a.__tailStop = true;
       var v0 = 1;
@@ -2551,7 +2551,9 @@ window.CET = window.CET || {};
       var t0 = Date.now();
       a.__tailTimer = setInterval(function () {
         var k = (Date.now() - t0) / 160;
-        if (k >= 1) {
+        // 硬上限：即使定时器被拖慢，也不能播过 hardStop（避免带出下一句开头）
+        var over = hardStop && a.currentTime >= hardStop;
+        if (k >= 1 || over) {
           clearInterval(a.__tailTimer);
           a.__tailTimer = null;
           try { a.volume = v0; } catch (e) { /* 忽略 */ }
@@ -2767,11 +2769,14 @@ window.CET = window.CET || {};
             return;
           }
           // 容差 0.15s：timeupdate 在低倍速下粒度较粗，允许略微过冲，但绝不提前切
-          if (t2.end > t2.start && a.currentTime >= t2.end - 0.02) {
+          // 到句界前 0.12s 开始淡出：淡出 160ms 正好在句界附近停住，
+          // 既留出设备延迟余量，又不会把下一句的开头播出来
+          var fadeFrom = Math.max(t2.start + 0.15, t2.end - 0.12);
+          if (t2.end > t2.start && a.currentTime >= fadeFrom) {
             if (loopLine === player.idx && loopTotal > 1) {
               loopDone += 1;
               if (loopDone >= loopTotal) {
-                tailFadeStop(a);
+                tailFadeStop(a, null, t2.end + 0.02);
                 setHint("第 " + (player.idx + 1) + " 句已循环 " + loopTotal + " 遍（" +
                   t2.start.toFixed(2) + "–" + t2.end.toFixed(2) + "s），自动停止", "ok");
                 loopLine = -1;
@@ -2783,11 +2788,11 @@ window.CET = window.CET || {};
                   try { a.currentTime = t2.start; } catch (e) { /* 忽略 */ }
                   var prl = a.play();
                   if (prl && prl.catch) { prl.catch(function () { /* 忽略 */ }); }
-                });
+                }, t2.end + 0.02);
                 setHint("第 " + (player.idx + 1) + " 句循环中：第 " + (loopDone + 1) + " / " + loopTotal + " 遍", "");
               }
             } else {
-              tailFadeStop(a);
+              tailFadeStop(a, null, t2.end + 0.02);
               setHint("第 " + (player.idx + 1) + " 句播完（" + t2.start.toFixed(2) + "–" + t2.end.toFixed(2) + "s）", "ok");
               loopLine = -1;
             }
