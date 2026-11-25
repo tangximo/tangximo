@@ -2037,7 +2037,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
-        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125f（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125g（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
@@ -2609,6 +2609,14 @@ window.CET = window.CET || {};
       }
       function onFail(err) {
         var code = err && err.name ? err.name : "Error";
+        // AbortError 表示这次 play() 被 pause() 打断，最常见的原因是用户又点了别的句子、
+        // 或点了暂停、或别的篇开始播放（pauseClips 会把所有篇暂停）。这属于正常操作，
+        // 不能当成播放失败弹提示，否则连点两句就会看到「播放失败」。
+        if (code === "AbortError") {
+          var isPaused = true;
+          try { isPaused = a.paused; } catch (e) { /* 忽略 */ }
+          if (isPaused) { return; }
+        }
         // AbortError：定位/暂停打断了这次 play()，普通重试一次即可
         if (code === "AbortError" && !retriedAbort) {
           retriedAbort = true;
