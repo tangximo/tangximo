@@ -22,7 +22,7 @@ window.CET = window.CET || {};
   // 每句独立的倍速 / 循环 / 遍数：按套 + 句 id 存在 localStorage（刷新、切篇后仍保留）
   var LINE_CTL_KEY = "cet.listening.lineCtl.v2";
   // 用户手动校准的句界：setId -> 句 id -> {s, e}（秒）。刷新后保留，优先级高于实测/估算。
-  var BOUND_KEY = "cet.listening.bounds.v4";
+  var BOUND_KEY = "cet.listening.bounds.v3";
   var customBounds = {};  // setId -> { lineIndex: {s, e} }
   function loadBounds() {
     try {
@@ -142,34 +142,9 @@ window.CET = window.CET || {};
   var PAUSE_ICO = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
   var SPEAK_SM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9.5v5h3.5L12 19V5l-4.5 4.5H4z"/><path d="M16 8.5a5 5 0 0 1 0 7"/></svg>';
 
-  /* 某套题的完整数据可能还没下载（按年份分片，点开才加载）。
-     setOf 会先找已加载的分片，找不到再退回索引占位对象。 */
-  var yearLoading = {};
-
-  function ensureYear(year) {
-    var by = CET.data.listeningByYear || {};
-    if (by[year] && by[year].length) return Promise.resolve();
-    if (yearLoading[year]) return yearLoading[year];
-    if (!(CET.loader && CET.loader.loadScript)) return Promise.reject(new Error("loader 不可用"));
-    var p = CET.loader.loadScript("assets/js/data/by-year/listening-" + year + ".js")
-      .then(function () { examIndex = null; })
-      .catch(function (err) { delete yearLoading[year]; throw err; });
-    yearLoading[year] = p;
-    return p;
-  }
-
   function setOf(id) {
-    // 分片数据优先（点开某年后才存在），否则回落到首屏的基础数组
-    var by = CET.data.listeningByYear || {};
-    var s = null;
-    Object.keys(by).forEach(function (y) {
-      if (s) return;
-      s = (by[y] || []).filter(function (x) { return x && x.id === id; })[0] || null;
-    });
-    if (!s) {
-      var all = (CET.data.listening || []).concat(CET.data.listening2025 || []).concat(CET.data.listeningExtra || []);
-      s = all.filter(function (x) { return x && x.id === id; })[0];
-    }
+    var all = (CET.data.listening || []).concat(CET.data.listening2025 || []).concat(CET.data.listeningExtra || []);
+    var s = all.filter(function (x) { return x.id === id; })[0];
     if (s && !s.lineBounds) {
       var m = CET.data.listeningBounds || {};
       if (m[s.id]) { s.lineBounds = m[s.id]; }
@@ -664,27 +639,28 @@ window.CET = window.CET || {};
       idx[uid] = { exam: uid, item: it, setId: null, set: null, key: "exam:" + uid,
         local: !!(it.local && isLocalAudio(it.local)) };
     });
-    // 本地套题索引（55 套）覆盖同名在线条目。
-    // 列表只需要「标题 / 题型 / 句数 / 题数」，全文在点开某套时才按年份加载，
-    // 这里用占位对象提供计数，避免为了渲染列表下载 2 MB 题库。
-    (CET.data.listeningIndex || []).forEach(function (s) {
-      var uid = s.level + ":" + s.exam;
-      // 只有该年份分片已经下载过，才拿真实对象；否则用占位对象，进详情时再加载
-      var byYearData = (CET.data.listeningByYear || {})[s.year] || [];
-      var real = byYearData.length ? setOf(s.id) : null;
-      var placeholder = {
-        id: s.id, level: s.level, exam: s.exam, year: s.year, month: s.month, set: s.set,
-        type: s.type, title: s.title, source: s.source, audio: s.audio,
-        lines: new Array(s.linesCount || 0), questions: new Array(s.questionsCount || 0),
-        _placeholder: true
-      };
+    // 2025.12 本地原音样板优先覆盖同名在线条目
+    (CET.data.listening2025 || []).forEach(function (set) {
+      var uid = set.level + ":" + set.exam;
       idx[uid] = {
         exam: uid,
         item: {
-          level: s.level, exam: s.exam, year: s.year, month: s.month, set: s.set,
-          title: s.title, url: s.audio
+          level: set.level, exam: set.exam, year: set.year, month: set.month, set: set.set,
+          title: set.title, url: set.audio
         },
-        setId: s.id, set: real || placeholder, key: "local:" + uid, local: true
+        setId: set.id, set: set, key: "local:" + uid, local: true
+      };
+    });
+    // 补全逐句原文的套题（listening-extra），覆盖对应在线条目
+    (CET.data.listeningExtra || []).forEach(function (set) {
+      var uid = set.level + ":" + set.exam;
+      idx[uid] = {
+        exam: uid,
+        item: {
+          level: set.level, exam: set.exam, year: set.year, month: set.month, set: set.set,
+          title: set.title, url: set.audio
+        },
+        setId: set.id, set: set, key: "extra:" + uid, local: true
       };
     });
     return idx;
@@ -820,7 +796,7 @@ window.CET = window.CET || {};
         '<div class="row between wrap" style="gap:10px;margin-bottom:10px">' +
           '<div><h3 style="font-size:15px">听力真题 · 按年份</h3>' +
           '<p class="tiny dim">先选年份，再选级别与套次；每套提供「完整版」与「精听版」两个入口。</p></div>' +
-          '<span class="tag teal">在线原音 ' + ((CET.data.listeningAudioOnline || {}).total || 0) + " 套 · 本地原音 " + ((CET.data.listeningIndex || []).length || ((CET.data.listening2025 || []).length + (CET.data.listeningExtra || []).length)) + " 套</span>" +
+          '<span class="tag teal">在线原音 ' + ((CET.data.listeningAudioOnline || {}).total || 0) + " 套 · 本地原音 " + ((CET.data.listening2025 || []).length + (CET.data.listeningExtra || []).length) + " 套</span>" +
         "</div>" +
         '<div class="filter-chips" id="yearChips">' + yearChips + "</div>" +
         levelChips + typeChips +
@@ -860,34 +836,19 @@ window.CET = window.CET || {};
     function openExam(exam, mode) {
       var entry = examEntry(exam);
       if (!entry) return;
-      var needLoad = entry.setId && (!entry.set || entry.set._placeholder);
-      var year = entry.item && entry.item.year;
-
-      function enter() {
-        examIndex = null;
-        var e2 = examEntry(exam) || entry;
-        stopAll();
-        ui.exam = exam;
-        ui.mode = mode;
-        ui.setId = e2.setId || null;
-        player.idx = -1;
-        player.playing = false;
-        player.auto = true;
-        player.loop = mode === "intensive";
-        loopLine = -1;
-        passLoop = -1;
-        draft = {};
-        revealed = false;
-        CET.app.rerender();
-      }
-
-      if (!needLoad) { enter(); return; }
-
-      // 该套题全文还没下载：先按年份拉取分片，再进详情
-      UI().toast("正在加载 " + year + " 年该套题原文…", "success");
-      ensureYear(year).then(enter).catch(function () {
-        UI().toast("题库加载失败，请检查网络后重试", "error");
-      });
+      stopAll();
+      ui.exam = exam;
+      ui.mode = mode;
+      ui.setId = entry.setId || null;
+      player.idx = -1;
+      player.playing = false;
+      player.auto = true;
+      player.loop = mode === "intensive";
+      loopLine = -1;
+      passLoop = -1;
+      draft = {};
+      revealed = false;
+      CET.app.rerender();
     }
 
     root.querySelectorAll("[data-full]").forEach(function (b) {
@@ -2098,7 +2059,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
-        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1128c（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125n（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
