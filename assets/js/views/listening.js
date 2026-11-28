@@ -6,7 +6,7 @@ window.CET = window.CET || {};
 (function () {
   var UI = function () { return CET.ui; };
   var ui = { setId: null, level: "ALL", year: 2025, exam: null, mode: null, type: "ALL" };
-  var player = { idx: -1, playing: false, auto: true, loop: false, hideText: false, rate: 0.92, timer: null };
+  var player = { idx: -1, playing: false, auto: true, loop: false, hideText: false, rate: 0.8, timer: null };
   var token = 0;
   var draft = {};       // 未提交的选择：qi -> 选项下标
   var revealed = false; // 当前套题是否已「查看答案」
@@ -20,7 +20,7 @@ window.CET = window.CET || {};
   var batch = { busy: false, last: null }; // 批量导入进度与最近一次结果
   var stopAt = null;      // 原音模式下「播到本句结束就停」的时间点（秒）
   // 每句独立的倍速 / 循环 / 遍数：按套 + 句 id 存在 localStorage（刷新、切篇后仍保留）
-  var LINE_CTL_KEY = "cet.listening.lineCtl.v2";
+  var LINE_CTL_KEY = "cet.listening.lineCtl.v4";
   // 用户手动校准的句界：setId -> 句 id -> {s, e}（秒）。刷新后保留，优先级高于实测/估算。
   var BOUND_KEY = "cet.listening.bounds.v3";
   var customBounds = {};  // setId -> { lineIndex: {s, e} }
@@ -1875,7 +1875,7 @@ window.CET = window.CET || {};
     }
     function lineRate(i) {
       var v = parseFloat(lineRates[i]);
-      if (!isFinite(v) || v < 0.5 || v > 2) { v = 1; }
+      if (!isFinite(v) || v < 0.5 || v > 2) { v = player.rate; }
       return Math.round(v * 20) / 20; // 对齐 0.05 步进
     }
     function lineRepsOf(i) {
