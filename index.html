@@ -59,42 +59,18 @@
 
   <div id="toastHost" class="toast-host" aria-live="polite"></div>
 
-  <script src="assets/js/data/words-4a.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4b.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4c.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4d.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4e.js?v=20261105f"></script>
-  <script src="assets/js/data/words-4f.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6a.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6b.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6c.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6d.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6e.js?v=20261105f"></script>
-  <script src="assets/js/data/words-6f.js?v=20261105f"></script>
-  <script src="assets/js/data/words.js?v=20261105f"></script>
-  <script src="assets/js/data/listening.js?v=20261106e"></script>
-  <script src="assets/js/data/listening-cet4.js?v=20261123a"></script>
-  <script src="assets/js/data/listening-cet6.js?v=20261123a"></script>
-  <script src="assets/js/data/listening-audio-online.js?v=20261124a"></script>
-  <script src="assets/js/data/listening-extra.js?v=20261124a"></script>
-  <script src="assets/js/data/listening-restore.js?v=20261125b"></script>
-  <script src="assets/js/data/listening-2025-06-cet6-s1.js?v=20261125b"></script>
-  <script src="assets/js/data/listening-2025-12.js?v=20261124a"></script>
-  <script src="assets/js/data/listening-2025-12-cet4-s1.js?v=20261124a"></script>
-  <script src="assets/js/data/listening-bounds.js?v=20261128c"></script>
-  <script src="assets/js/data/listening-2025-06-cet4-s1-r6.js?v=20261125n"></script>
-  <script src="assets/js/data/listening-2026-06-cet4-s1.js?v=20261128c"></script>
-  <script src="assets/js/data/listening-2026-06-cet4-s2.js?v=20261128a"></script>
-  <script src="assets/js/data/speaking.js?v=20261105f"></script>
-  <script src="assets/js/core/store.js?v=20261105f"></script>
-  <script src="assets/js/core/audio-store.js?v=20261105f"></script>
-  <script src="assets/js/core/ui.js?v=20261105f"></script>
-  <script src="assets/js/views/dashboard.js?v=20261105f"></script>
-  <script src="assets/js/views/vocab.js?v=20261105f"></script>
-  <script src="assets/js/views/speaking.js?v=20261105f"></script>
-  <script src="assets/js/views/listening.js?v=20261128c"></script>
-  <script src="assets/js/views/groups.js?v=20261105f"></script>
-  <script src="assets/js/views/points.js?v=20261105f"></script>
-  <script src="assets/js/app.js?v=20261105f"></script>
+  <!-- 首屏只加载「首页必需」的代码 + 懒加载器；
+       词库扩展包、听力题库（约 2 MB）全部改成进入对应页面时按需下载，
+       避免 30+ 个同步 <script> 阻塞解析导致整站长时间不可点、个别请求失败。 -->
+  <script id="cetBoot" data-version="20261129a">window.CET_VERSION = "20261129a";</script>
+  <script src="assets/js/data/words.js?v=20261129a"></script>
+  <script src="assets/js/data/listening.js?v=20261129a"></script>
+  <script src="assets/js/data/speaking.js?v=20261129a"></script>
+  <script src="assets/js/core/store.js?v=20261129a"></script>
+  <script src="assets/js/core/loader.js?v=20261129a"></script>
+  <script src="assets/js/core/audio-store.js?v=20261129a"></script>
+  <script src="assets/js/core/ui.js?v=20261129a"></script>
+  <script src="assets/js/views/dashboard.js?v=20261129a"></script>
+  <script src="assets/js/app.js?v=20261129a"></script>
 </body>
 </html>
