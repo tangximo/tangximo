@@ -22,7 +22,7 @@ window.CET = window.CET || {};
   // 每句独立的倍速 / 循环 / 遍数：按套 + 句 id 存在 localStorage（刷新、切篇后仍保留）
   var LINE_CTL_KEY = "cet.listening.lineCtl.v2";
   // 用户手动校准的句界：setId -> 句 id -> {s, e}（秒）。刷新后保留，优先级高于实测/估算。
-  var BOUND_KEY = "cet.listening.bounds.v3";
+  var BOUND_KEY = "cet.listening.bounds.v4";
   var customBounds = {};  // setId -> { lineIndex: {s, e} }
   function loadBounds() {
     try {
@@ -2059,7 +2059,7 @@ window.CET = window.CET || {};
         (set.clipNote
           ? '<p class="tiny dim clip-note" style="margin-top:8px">' + UI().esc(set.clipNote) + "</p>"
           : "") +
-        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1125n（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
+        '<p class="tiny dim play-ver" style="margin-top:4px">播放器 1128c（若点播放提示失败，请把版本号和提示原文发给我）</p>' +
         (set.transcriptNote
           ? '<p class="tiny dim" style="margin-top:8px">' + UI().esc(set.transcriptNote) + "</p>"
           : "") +
