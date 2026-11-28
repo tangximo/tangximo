@@ -54,19 +54,11 @@ window.CET = window.CET || {};
     ],
     speaking: ["assets/js/views/speaking.js"],
     listening: [
-      // 顺序必须与旧版 index.html 的同步加载顺序完全一致，否则会丢原文/丢句界。
-      "assets/js/data/listening-cet4.js",
-      "assets/js/data/listening-cet6.js",
+      // 进入听力页只下载「索引 + 句界 + 在线原音清单」约 120 KB；
+      // 每套题的全文按年份放在 assets/js/data/by-year/，点开某套时才加载。
+      "assets/js/data/listening-index.js",
       "assets/js/data/listening-audio-online.js",
-      "assets/js/data/listening-extra.js",
-      "assets/js/data/listening-restore.js",
-      "assets/js/data/listening-2025-06-cet6-s1.js",
-      "assets/js/data/listening-2025-12.js",
-      "assets/js/data/listening-2025-12-cet4-s1.js",
       "assets/js/data/listening-bounds.js",
-      "assets/js/data/listening-2025-06-cet4-s1-r6.js",
-      "assets/js/data/listening-2026-06-cet4-s1.js",
-      "assets/js/data/listening-2026-06-cet4-s2.js",
       "assets/js/views/listening.js"
     ],
     groups: ["assets/js/views/groups.js"],
