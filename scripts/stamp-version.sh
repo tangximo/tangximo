@@ -80,6 +80,13 @@ for old, new in hits:
 if not hits:
     print("==> 警告: 没有匹配到任何 ?v= 引用", file=sys.stderr)
 
+# cetBoot 的 data-version 是 loader.js 懒加载视图脚本/大数据文件时的缓存版本号，
+# 必须跟着一起更新，否则 listening.js 等懒加载脚本会一直用旧版本号命中浏览器缓存。
+BOOT = re.compile(r'(id="cetBoot"[^>]*\bdata-version=")([^"]*)(")')
+boot_hits = BOOT.findall(out)
+out, boot_n = BOOT.subn(lambda m: m.group(1) + version + m.group(3), out)
+print(f"==> cetBoot data-version 重写: {boot_n} 处")
+
 # 自检: 原本带版本号的站内 js/css 引用，必须全部变成新版本
 HREF = re.compile(r"""(?:href|src)\s*=\s*["']([^"']*)["']""", re.IGNORECASE)
 bad = []
