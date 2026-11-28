@@ -2346,6 +2346,13 @@ window.CET = window.CET || {};
           if (loopLine >= 0 && player.idx === loopLine) return;
           try { a.playbackRate = player.rate; } catch (err) { /* 忽略 */ }
         });
+        // 没有单独设定过倍速的句子，同步更新行内滑块与数值，保持界面与实际一致
+        root.querySelectorAll("[data-line-slider]").forEach(function (sl) {
+          var i = parseInt(sl.getAttribute("data-line-slider"), 10);
+          var own = parseFloat(lineRates[i]);
+          if (isFinite(own) && own >= 0.5 && own <= 2) return;
+          syncLineUi(i);
+        });
         setHint("语速已调为 " + player.rate.toFixed(2) + "x" +
           (loopLine >= 0 ? "；当前单句循环仍按该句自己的倍速" : "，整卷原音、本篇与逐句都会生效"), "");
       });
