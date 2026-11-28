@@ -2030,11 +2030,9 @@ window.CET = window.CET || {};
             '<button class="player-big" id="playBig" type="button" aria-label="播放">' + PLAY_ICO + "</button>" +
             '<div class="player-info"><strong id="playerState">' + (useOrigAudio ? "播放原音" : "播放全文") + '</strong><span id="playerStatus">未开始</span></div>' +
             '<div class="spacer"></div>' +
-            (useOrigAudio
-              ? '<span class="tiny dim">整卷原音 · 逐句请用下方本篇播放器</span>'
-              : '<div class="rate-slider"><span>语速 <b id="rateVal">' + player.rate.toFixed(2) + "x</b></span>" +
-                '<input type="range" id="rateRange" min="60" max="130" step="5" value="' +
-                  Math.round(player.rate * 100) + '" aria-label="语速" /></div>') +
+            '<div class="rate-slider"><span>语速 <b id="rateVal">' + player.rate.toFixed(2) + "x</b></span>" +
+              '<input type="range" id="rateRange" min="60" max="130" step="5" value="' +
+                Math.round(player.rate * 100) + '" aria-label="全局语速" /></div>' +
           "</div>" +
           '<div class="row wrap" style="gap:8px">' +
             '<button class="btn sm ghost" id="prevLine" type="button">上一句</button>' +
@@ -2187,6 +2185,7 @@ window.CET = window.CET || {};
         if (!a.paused) { a.pause(); setHint("已暂停", ""); return; }
         stopAt = null;
         setHint("正在播放整卷原音", "");
+        try { a.playbackRate = player.rate; } catch (e4) { /* 忽略 */ }
         var p = a.play();
         if (p && p.catch) {
           p.catch(function (err) {
@@ -2248,6 +2247,8 @@ window.CET = window.CET || {};
           }
         });
         au.addEventListener("play", function () {
+          // 用原生音频条播放整卷时也按全局语速，避免「整卷是原速」的错觉
+          try { au.playbackRate = player.rate; } catch (e4) { /* 忽略 */ }
           // 整卷原音的单句循环只在句界为「整卷绝对时间」时可靠；
           // 分篇 clip 套题的句界是 clip 相对时间（如 2025-12 第1套），在整卷上会跳错，因此取消
           var absBounds = !!(set.lineBounds && set.lineBounds.length) &&
@@ -2336,7 +2337,17 @@ window.CET = window.CET || {};
         player.rate = parseInt(e.target.value, 10) / 100;
         var val = root.querySelector("#rateVal");
         if (val) val.textContent = player.rate.toFixed(2) + "x";
-        setHint("语速已调为 " + player.rate.toFixed(2) + "x，下一句生效", "");
+        // 整卷原音 / 本篇 / 逐句正在播放的都立刻跟随，避免「整卷或本篇还是原速」的错觉
+        var oa = root.querySelector("#origAudio");
+        if (oa) { try { oa.playbackRate = player.rate; } catch (err) { /* 忽略 */ } }
+        root.querySelectorAll(".tp-audio").forEach(function (a) {
+          if (a.paused) return;
+          // 正在单句循环时由该句自己的倍速接管，不覆盖
+          if (loopLine >= 0 && player.idx === loopLine) return;
+          try { a.playbackRate = player.rate; } catch (err) { /* 忽略 */ }
+        });
+        setHint("语速已调为 " + player.rate.toFixed(2) + "x" +
+          (loopLine >= 0 ? "；当前单句循环仍按该句自己的倍速" : "，整卷原音、本篇与逐句都会生效"), "");
       });
     }
 
@@ -2501,6 +2512,14 @@ window.CET = window.CET || {};
         }
       });
       saveLineCtl();
+      // 批量语速同时作为全局语速，让「播放本篇 / 整卷原音」也跟随同一个值
+      player.rate = v;
+      var rv = root.querySelector("#rateVal");
+      if (rv) { rv.textContent = player.rate.toFixed(2) + "x"; }
+      var rr = root.querySelector("#rateRange");
+      if (rr) { rr.value = String(Math.round(player.rate * 100)); }
+      var oaB = root.querySelector("#origAudio");
+      if (oaB) { try { oaB.playbackRate = player.rate; } catch (e) { /* 忽略 */ } }
       var bv = root.querySelector("#bulkRateVal");
       if (bv) { bv.textContent = rateLabel(v); }
       setHint("已把全部 " + (set.lines || []).length + " 句设为 " + rateLabel(v) + "（之后各句仍可单独调整）", "");
@@ -2704,6 +2723,7 @@ window.CET = window.CET || {};
       setHint("正在播放第 " + (i + 1) + " 句" + (t.custom ? "（已校准）" : "") + " · " + lineRate(i).toFixed(2) + "× · " +
         t.start.toFixed(2) + "–" + t.end.toFixed(2) + "s" +
         (lineLoops[i] ? " · 循环 " + loopTotal + " 遍" : ""), "");
+      a.__wantRate = lineRate(i);
       seekThenPlay(a, startAt, lineRate(i));
     }
     root.querySelectorAll("[data-tp-play]").forEach(function (b) {
@@ -2730,13 +2750,19 @@ window.CET = window.CET || {};
         try { cur = a.currentTime || 0; } catch (e) { cur = 0; }
         if (cur >= 0.05) { fromAt = cur; }
         setHint("正在播放本篇音频", "");
-        seekThenPlay(a, fromAt, 1);
+        a.__wantRate = player.rate;
+        seekThenPlay(a, fromAt, player.rate);
       });
     });
     root.querySelectorAll(".tp-audio").forEach(function (a) {
       var pi = a.getAttribute("data-tp-audio");
       a.addEventListener("play", function () {
         cancelTailStop(a);
+        // 统一按当前设置应用倍速：本篇/音频条原生播放键用全局语速，
+        // 「播放这句」用该句自己的倍速（由调用方提前写入 __wantRate）。
+        var want = (typeof a.__wantRate === "number") ? a.__wantRate : player.rate;
+        a.__wantRate = null;
+        try { a.playbackRate = want; } catch (err) { /* 忽略 */ }
         root.querySelectorAll(".tp-audio").forEach(function (x) {
           if (x !== a) { x.pause(); }
         });
