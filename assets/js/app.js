@@ -37,19 +37,36 @@ window.CET = window.CET || {};
   //   CET.data.listening2025（由 listening-2025-12.js 建立数组，下面 3 个文件往数组里填 lines）
   // 这些必须在视图脚本执行之前就位，否则首次进入听力页会看到「精听版没有原文」。
   var VIEW_SCRIPTS = {
-    vocab: ["assets/js/views/vocab.js"],
+    vocab: [
+      "assets/js/data/words-4a.js",
+      "assets/js/data/words-4b.js",
+      "assets/js/data/words-4c.js",
+      "assets/js/data/words-4d.js",
+      "assets/js/data/words-4e.js",
+      "assets/js/data/words-4f.js",
+      "assets/js/data/words-6a.js",
+      "assets/js/data/words-6b.js",
+      "assets/js/data/words-6c.js",
+      "assets/js/data/words-6d.js",
+      "assets/js/data/words-6e.js",
+      "assets/js/data/words-6f.js",
+      "assets/js/views/vocab.js"
+    ],
     speaking: ["assets/js/views/speaking.js"],
     listening: [
+      // 顺序必须与旧版 index.html 的同步加载顺序完全一致，否则会丢原文/丢句界。
+      "assets/js/data/listening-cet4.js",
+      "assets/js/data/listening-cet6.js",
       "assets/js/data/listening-audio-online.js",
-      "assets/js/data/listening-bounds.js",
-      "assets/js/data/listening-restore.js",
       "assets/js/data/listening-extra.js",
-      // 以下 3 个是「精听版逐句原文」数据：往 CET.data.listening2025 数组里对应的
-      // 套题上挂 lines / lineBounds / passages。必须让 listening-2025-12.js（首屏已加载）
-      // 先建立数组，再执行这 3 个文件填充，最后才执行 views/listening.js 渲染。
+      "assets/js/data/listening-restore.js",
       "assets/js/data/listening-2025-06-cet6-s1.js",
+      "assets/js/data/listening-2025-12.js",
       "assets/js/data/listening-2025-12-cet4-s1.js",
+      "assets/js/data/listening-bounds.js",
       "assets/js/data/listening-2025-06-cet4-s1-r6.js",
+      "assets/js/data/listening-2026-06-cet4-s1.js",
+      "assets/js/data/listening-2026-06-cet4-s2.js",
       "assets/js/views/listening.js"
     ],
     groups: ["assets/js/views/groups.js"],
